@@ -1,0 +1,64 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+sourceCompatibility = 1.11
+targetCompatibility = 1.11
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.apache.commons:commons-lang3:3.12.0'
+    implementation 'org.apache.commons:commons-collections4:latest.release'
+    implementation 'ch.qos.logback:logback-classic:1.2.6'
+    
+}
+
+application {
+    mainClassName = project.hasProperty("mainClass") ? project.getProperty("mainClass") : "NULL"
+}
+
+// Create a new DayN.java file from the template.
+tasks.register('newDay', Copy){
+    
+    def targetDir = '/src/main/java/aoc2023/'
+    
+    def nextDay = file(targetDir).listFiles()
+                                 .findAll { it.name ==~ /Day.*.java/ }
+                                 .size() + 1
+                                                 
+    logger.info('Generating Day {}', nextDay);
+
+    from 'src/main/java-templates/Day.java'
+    
+    into targetDir
+    
+    rename { 
+        def fileName = 'Day' + nextDay + '.java';
+        logger.info('New file name: {}', fileName);
+        
+        if(file(targetDir + fileName).exists())
+            throw new GradleException('Destination file "' + fileName + '" already exists!');
+
+        fileName;
+    }
+    
+    expand(day: nextDay)
+    
+    // Create input files
+    def resources = 'src/main/resources/'
+    def inputFile = file(resources + 'input/Day' + nextDay + '.txt')
+    def testInputFile = file(resources + 'testInput/Day' + nextDay + '.txt')
+    
+    if(inputFile.exists())
+        throw new GradleException('Destination file "' + inputFile + '" already exists!');
+    inputFile.text = ''
+    
+    if(testInputFile.exists())
+        throw new GradleException('Destination file "' + testInputFile + '" already exists!');
+    testInputFile.text = ''
+
+}
