@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
@@ -40,6 +39,8 @@ public class Day1 {
                                                                "nine", 9);
 
     private static final String NUMBER_REGEX = NUMBERS.keySet().stream().collect(Collectors.joining("|", "(", ")"));
+    private static final String NUMBER_REVERSE_REGEX = StringUtils.reverse(NUMBERS.keySet().stream()
+                                                                                  .collect(Collectors.joining("|", ")", "(")));
 
     public static void main(String[] args) {
 
@@ -70,6 +71,9 @@ public class Day1 {
 
         log.info("The sum of the values in the test input is: {}. It should be 281.", part2(testLines));
 
+        log.info("The value of the line {} is: {}", "mbkfgktwolbvsptgsixseven1oneightzvm",
+                 findNumberValue("mbkfgktwolbvsptgsixseven1oneightzvm"));
+
         log.setLevel(Level.INFO);
 
         log.info("The sum of the values in the real input is: {}. It should be higher than 53293.", part2(lines));
@@ -92,7 +96,7 @@ public class Day1 {
 
     /**
      * Given a line of alphanumeric characters, find the first and last digits
-     * (could be the same), treat those as a two digit number
+     * (could be the same), treat those as a two digit number.
      * 
      * @param line
      *            The line of alphanumeric characters.
@@ -127,7 +131,7 @@ public class Day1 {
     /**
      * Given a line of alphanumeric characters, find the first and last numbers
      * (either the digit or the word, which could be the same), treat those as a
-     * two digit number
+     * two digit number.
      * 
      * @param line
      *            The line of alphanumeric characters.
@@ -137,16 +141,33 @@ public class Day1 {
         log.debug("Received: {}", line);
         // First, substitute the words for digits
 
-        line = line.replaceAll(NUMBER_REGEX, "{$1}");
+        String line1 = line.replaceAll(NUMBER_REGEX, "{$1}");
+        // This seemed the easiest way to find the instances of number words from the right
+        String line2 = StringUtils.reverse(line).replaceAll(NUMBER_REVERSE_REGEX, "}$1{");
+        line2 = StringUtils.reverse(line2);
 
         for (Entry<String, Integer> e : NUMBERS.entrySet()) {
             String word = e.getKey();
             String digit = e.getValue().toString();
-            line = line.replace(word, digit);
+            line1 = line1.replace(word, digit);
+            line2 = line2.replace(word, digit);
         }
 
-        log.debug("Translated to: {}", line);
-        return findDigitValue(line);
+        log.debug("Translated to: {} and {}", line1, line2);
+
+        String digits1 = StringUtils.getDigits(line1);
+
+        // Just in case there are no digits (there wouldn't be any from the other direction either)
+        if (digits1.length() == 0)
+            return 0;
+
+        char firstDigit = digits1.charAt(0);
+
+        String digits2 = StringUtils.getDigits(line2);
+        char secondDigit = digits2.charAt(digits2.length() - 1);
+
+        return (firstDigit - '0') * 10 + (secondDigit - '0');
+
     }
 
 }
