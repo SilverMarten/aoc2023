@@ -24,6 +24,7 @@ public class Day${day}{
 
     public static void main(String[] args) {
 
+        log.info("Part 1:");
         log.setLevel(Level.DEBUG);
 
         // Read the test file
@@ -40,7 +41,7 @@ public class Day${day}{
         log.info("{}", part1(lines));
 
         // PART 2
-
+        log.info("Part 2:");
         log.setLevel(Level.DEBUG);
 
         log.info("{}", part2(testLines));

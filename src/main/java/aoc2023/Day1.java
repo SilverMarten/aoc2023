@@ -1,6 +1,11 @@
 package aoc2023;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.LoggerFactory;
@@ -24,12 +29,28 @@ public class Day1 {
 
     private static final String TEST_INPUT_TXT = "testInput/Day1.txt";
 
+    private static final Map<String, Integer> NUMBERS = Map.of("one", 1,
+                                                               "two", 2,
+                                                               "three", 3,
+                                                               "four", 4,
+                                                               "five", 5,
+                                                               "six", 6,
+                                                               "seven", 7,
+                                                               "eight", 8,
+                                                               "nine", 9);
+
+    private static final String NUMBER_REGEX = NUMBERS.keySet().stream().collect(Collectors.joining("|", "(", ")"));
+
     public static void main(String[] args) {
 
+        log.info("Part 1:");
         log.setLevel(Level.DEBUG);
 
         // Read the test file
-        List<String> testLines = FileUtils.readFile(TEST_INPUT_TXT);
+        List<String> testLines = Arrays.asList("1abc2",
+                                               "pqr3stu8vwx",
+                                               "a1b2c3d4e5f",
+                                               "treb7uchet");
         log.trace(testLines.toString());
 
         log.info("The sum of the values in the test input is: {}. It should be 142.", part1(testLines));
@@ -42,14 +63,16 @@ public class Day1 {
         log.info("The sum of the values in the real input is: {}", part1(lines));
 
         // PART 2
+        log.info("Part 2:");
 
+        testLines = FileUtils.readFile(TEST_INPUT_TXT);
         log.setLevel(Level.DEBUG);
 
-        log.info("{}", part2(testLines));
+        log.info("The sum of the values in the test input is: {}. It should be 281.", part2(testLines));
 
         log.setLevel(Level.INFO);
 
-        log.info("{}", part2(lines));
+        log.info("The sum of the values in the real input is: {}. It should be higher than 53293.", part2(lines));
     }
 
     /**
@@ -64,20 +87,66 @@ public class Day1 {
      */
     private static int part1(final List<String> lines) {
 
-        return lines.stream().mapToInt(Day1::findValue).sum();
+        return lines.stream().mapToInt(Day1::findDigitValue).sum();
     }
 
-    private static int findValue(String line) {
+    /**
+     * Given a line of alphanumeric characters, find the first and last digits
+     * (could be the same), treat those as a two digit number
+     * 
+     * @param line
+     *            The line of alphanumeric characters.
+     * @return The value of the first and last digits as a two digit number.
+     */
+    private static int findDigitValue(String line) {
         String digits = StringUtils.getDigits(line);
+        if (digits.length() == 0)
+            return 0;
+
         char firstDigit = digits.charAt(0);
-        char secondDigit = digits.charAt(digits.length()-1);
+        char secondDigit = digits.charAt(digits.length() - 1);
 
         return (firstDigit - '0') * 10 + (secondDigit - '0');
     }
 
+    /**
+     * Given a list of lines of alphanumeric characters, find the first and last
+     * number (either the digit or the word, which could be the same), treat
+     * those as a two digit number, and sum the value for all lines.
+     * 
+     * @param lines
+     *            The lines of alphanumeric characters.
+     * @return The sum of interpreting the first and last numbers of each line
+     *         as a number.
+     */
     private static int part2(final List<String> lines) {
 
-        return -1;
+        return lines.stream().mapToInt(Day1::findNumberValue).sum();
+    }
+
+    /**
+     * Given a line of alphanumeric characters, find the first and last numbers
+     * (either the digit or the word, which could be the same), treat those as a
+     * two digit number
+     * 
+     * @param line
+     *            The line of alphanumeric characters.
+     * @return The value of the first and last numbers as a two digit number.
+     */
+    private static int findNumberValue(String line) {
+        log.debug("Received: {}", line);
+        // First, substitute the words for digits
+
+        line = line.replaceAll(NUMBER_REGEX, "{$1}");
+
+        for (Entry<String, Integer> e : NUMBERS.entrySet()) {
+            String word = e.getKey();
+            String digit = e.getValue().toString();
+            line = line.replace(word, digit);
+        }
+
+        log.debug("Translated to: {}", line);
+        return findDigitValue(line);
     }
 
 }
