@@ -1,6 +1,5 @@
 plugins {
     id 'java'
-    id 'application'
 }
 
 sourceCompatibility = 1.11
@@ -15,10 +14,6 @@ dependencies {
     implementation 'org.apache.commons:commons-collections4:latest.release'
     implementation 'ch.qos.logback:logback-classic:1.2.6'
     
-}
-
-application {
-    mainClassName = project.hasProperty("mainClass") ? project.getProperty("mainClass") : "NULL"
 }
 
 // Create a new DayN.java file from the template.
@@ -53,11 +48,11 @@ tasks.register('newDay', Copy){
     def inputFile = file(resources + 'input/Day' + nextDay + '.txt')
     def testInputFile = file(resources + 'testInput/Day' + nextDay + '.txt')
     
-    if(inputFile.exists())
+    if(inputFile.exists() && inputFile.size() > 0)
         throw new GradleException('Destination file "' + inputFile + '" already exists!');
     inputFile.text = ''
     
-    if(testInputFile.exists())
+    if(testInputFile.exists() && inputFile.size() > 0)
         throw new GradleException('Destination file "' + testInputFile + '" already exists!');
     testInputFile.text = ''
 

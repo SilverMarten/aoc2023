@@ -30,5 +30,7 @@ hs_err_pid*
 .project
 .settings
 
+gradle.properties
+
 # Replit
 .replit
