@@ -1,7 +1,6 @@
 package aoc2023;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -55,11 +54,11 @@ public class Day2 {
         log.info("Part 2:");
         log.setLevel(Level.DEBUG);
 
-        log.info("{}", part2(testLines));
+        log.info("The sum of the products of the number of cubes needed is: {} (should be 2286)", part2(testLines));
 
         log.setLevel(Level.INFO);
 
-        log.info("{}", part2(lines));
+        log.info("The sum of the products of the number of cubes needed is: {}", part2(lines));
     }
 
     /**
@@ -95,10 +94,22 @@ public class Day2 {
         return sumOfGameIds;
     }
 
-    private static List<Map<CubeColour, Integer>> countCubes(String line) {
+    /**
+     * Given a line of the format:
+     * 
+     * <pre>
+     * Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green
+     * </pre>
+     * 
+     * parse the number of cubes for each colour for every round.
+     * 
+     * @param game
+     * @return A list of maps of the {@link CubeColour} and counts.
+     */
+    private static List<Map<CubeColour, Integer>> countCubes(String game) {
 
         List<Map<CubeColour, Integer>> rounds = new ArrayList<>();
-        for (String round : line.split(";")) {
+        for (String round : game.split(";")) {
             rounds.add(Stream.of(round.split(","))
                              .collect(Collectors.toMap(cc -> CubeColour.valueOf(cc.trim().split(" ")[1].toUpperCase()),
                                                        cc -> Integer.valueOf(cc.trim().split(" ")[0]))));
@@ -108,9 +119,34 @@ public class Day2 {
         return rounds;
     }
 
+    /**
+     * in each game you played, what is the fewest number of cubes of each color
+     * that could have been in the bag to make the game possible?
+     * 
+     * @param lines
+     * @return The sum of the product of the number of cubes required for each game
+     *     to be possible.
+     */
     private static int part2(final List<String> lines) {
 
-        return -1;
+        int sumOfProducts = 0;
+
+        for (String gameLine : lines) {
+            int maxRed = 0;
+            int maxGreen = 0;
+            int maxBlue = 0;
+
+            log.debug("Game input: {}", gameLine);
+
+            for (Map<CubeColour, Integer> game : countCubes(gameLine.split(":")[1])) {
+                maxRed = Integer.max(maxRed, game.getOrDefault(CubeColour.RED, 0));
+                maxGreen = Integer.max(maxGreen, game.getOrDefault(CubeColour.GREEN, 0));
+                maxBlue = Integer.max(maxBlue, game.getOrDefault(CubeColour.BLUE, 0));
+            }
+            sumOfProducts += maxRed * maxGreen * maxBlue;
+        }
+
+        return sumOfProducts;
     }
 
 }
