@@ -150,7 +150,8 @@ public class Day3 {
     public static void main(String[] args) {
 
         log.info("Part 1:");
-        log.setLevel(Level.TRACE);
+        // log.setLevel(Level.TRACE);
+        log.setLevel(Level.DEBUG);
 
         // Read the test file
         List<String> testLines = FileUtils.readFile(TEST_INPUT_TXT);
@@ -159,7 +160,7 @@ public class Day3 {
         log.info("The sum of the part numbers in the schematic is: {} (should be 4361)", part1(testLines));
 
         log.setLevel(Level.DEBUG);
-        // log.setLevel(Level.INFO);
+        log.setLevel(Level.INFO);
 
         // Read the real file
         List<String> lines = FileUtils.readFile(INPUT_TXT);
@@ -171,7 +172,7 @@ public class Day3 {
         log.info("Part 2:");
         log.setLevel(Level.DEBUG);
 
-        log.info("{}", part2(testLines));
+        log.info("{} (should be 467835)", part2(testLines));
 
         log.setLevel(Level.INFO);
 
@@ -305,9 +306,42 @@ public class Day3 {
                   .collect(Collectors.joining(",\n"));
     }
 
+    /**
+     * What is the sum of all of the gear ratios in your engine schematic?
+     * 
+     * @param lines The lines of text to be interpreted as an engine schematic.
+     * @return The sum of the products of the part numbers of gears in the
+     *     schematic.
+     */
     private static int part2(final List<String> lines) {
 
-        return -1;
+        // Map out the locations of the numbers
+        Map<Coordinate, FoundNumber> numberLocations = mapNumbers(lines);
+
+        // Map out the location of the symbols
+        List<FoundSymbol> symbols = listSymbols(lines);
+
+        // For each symbol, find adjacent parts
+        for (FoundSymbol symbol : symbols) {
+            symbol.location.findAdjacent().stream()
+                           .map(numberLocations::get)
+                           .filter(Objects::nonNull)
+                           .distinct()
+                           .forEach(n -> {
+                               symbol.partNumbers.add(n);
+                               n.part = true;
+                           });
+        }
+
+        return symbols.stream()
+                      .filter(g -> g.partNumbers.size() == 2)
+                      .mapToInt(g -> {
+                          AtomicInteger product = new AtomicInteger(1);
+                          g.partNumbers.stream().mapToInt(FoundNumber::getValue)
+                                       .forEach(v -> product.set(product.get() * v));
+                          return product.get();
+                      })
+                      .sum();
     }
 
 }
