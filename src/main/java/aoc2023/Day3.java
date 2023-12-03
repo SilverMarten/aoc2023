@@ -1,7 +1,9 @@
 package aoc2023;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -34,7 +36,7 @@ public class Day3 {
 
     private static final String TEST_INPUT_TXT = "testInput/Day3.txt";
 
-    private static final class Coordinate {
+    private static final class Coordinate implements Comparable<Coordinate> {
         int row;
         int column;
 
@@ -86,6 +88,13 @@ public class Day3 {
             return String.format("(row=%s, column=%s)", row, column);
         }
 
+        @Override
+        public int compareTo(Coordinate o) {
+            int result = Integer.compare(this.row, o.row);
+
+            return result == 0 ? Integer.compare(this.column, o.column) : result;
+        }
+
     }
 
     /**
@@ -94,9 +103,12 @@ public class Day3 {
      */
     private static final class FoundNumber {
         final int value;
+        final List<Coordinate> locations;
+        boolean part = false;
 
         public FoundNumber(int value) {
             this.value = value;
+            this.locations = new ArrayList<>();
         }
 
         int getValue() {
@@ -105,7 +117,32 @@ public class Day3 {
 
         @Override
         public String toString() {
-            return Integer.toString(value);
+            return String.format("%s%s %s", this.value, part ? "*" : "", this.locations);
+        }
+
+    }
+
+    /**
+     * A container to hold instances of numbers symbol in the input.
+     */
+    private static final class FoundSymbol {
+        final char value;
+        final Coordinate location;
+        final Set<FoundNumber> partNumbers;
+
+        public FoundSymbol(char value, Coordinate location) {
+            super();
+            this.value = value;
+            this.location = location;
+            this.partNumbers = new HashSet<>();
+        }
+
+        @Override
+        public String toString() {
+            String parts = this.partNumbers.stream()
+                                           .map(n -> Integer.toString(n.value))
+                                           .collect(Collectors.joining(", "));
+            return String.format("%s %s parts: %s", this.value, this.location, parts);
         }
 
     }
@@ -113,7 +150,7 @@ public class Day3 {
     public static void main(String[] args) {
 
         log.info("Part 1:");
-        log.setLevel(Level.DEBUG);
+        log.setLevel(Level.TRACE);
 
         // Read the test file
         List<String> testLines = FileUtils.readFile(TEST_INPUT_TXT);
@@ -121,12 +158,14 @@ public class Day3 {
 
         log.info("The sum of the part numbers in the schematic is: {} (should be 4361)", part1(testLines));
 
-        log.setLevel(Level.INFO);
+        log.setLevel(Level.DEBUG);
+        // log.setLevel(Level.INFO);
 
         // Read the real file
         List<String> lines = FileUtils.readFile(INPUT_TXT);
 
-        log.info("The sum of the part numbers in the schematic: {} (should be higher than 508745)", part1(lines));
+        log.info("The sum of the part numbers in the schematic: {} (should be between 508745 and 810041, and not 511038)",
+                 part1(lines));
 
         // PART 2
         log.info("Part 2:");
@@ -151,16 +190,45 @@ public class Day3 {
         Map<Coordinate, FoundNumber> numberLocations = mapNumbers(lines);
 
         // Map out the location of the symbols
-        List<Coordinate> symbolLocations = listSymbols(lines);
+        List<FoundSymbol> symbols = listSymbols(lines);
 
-        // For each symbol, find adjacent part numbers, and sum them
-        int sum = symbolLocations.stream()
-                                 .flatMap(c -> c.findAdjacent().stream())
-                                 .map(numberLocations::get)
-                                 .filter(Objects::nonNull)
-                                 .distinct()
-                                 .mapToInt(FoundNumber::getValue)
+        // For each symbol, find adjacent numbers, and sum them
+        /* int sum = symbols.stream()
+                         .flatMap(s -> s.location.findAdjacent().stream())
+                         .map(numberLocations::get)
+                         .filter(Objects::nonNull)
+                         .distinct()
+                         .mapToInt(FoundNumber::getValue)
+                         .sum();*/
+
+        /* int sum = 0;
+        for (FoundSymbol symbol : symbols) {
+            sum += symbol.location.findAdjacent().stream()
+                                  .map(numberLocations::get)
+                                  .filter(Objects::nonNull)
+                                  .distinct()
+                                  .peek(n -> {
+                                      symbol.partNumbers.add(n);
+                                      n.part = true;
+                                  })
+                                  .mapToInt(FoundNumber::getValue)
+                                  .sum();
+        }*/
+
+        for (FoundSymbol symbol : symbols) {
+            symbol.location.findAdjacent().stream()
+                           .map(numberLocations::get)
+                           .filter(Objects::nonNull)
+                           .distinct()
+                           .forEach(n -> {
+                               symbol.partNumbers.add(n);
+                               n.part = true;
+                           });
+        }
+        int sum = numberLocations.values().stream().distinct().filter(n -> n.part).mapToInt(FoundNumber::getValue)
                                  .sum();
+
+        log.debug("Found symbols:\n{}", symbols.stream().map(FoundSymbol::toString).collect(Collectors.joining("\n")));
 
         return sum;
     }
@@ -177,24 +245,29 @@ public class Day3 {
 
         AtomicInteger row = new AtomicInteger(0);
         for (String line : lines) {
+            AtomicInteger lastColumn = new AtomicInteger(0);
             Stream.of(line.split("\\D"))
                   .filter(StringUtils::isNotBlank)
                   .forEach(s -> {
                       FoundNumber number = new FoundNumber(Integer.parseInt(s));
+                      int column = line.indexOf(s, lastColumn.get());
+                      /*if (column < 0)
+                          throw new IndexOutOfBoundsException("The number " + s
+                                                              + " wasn't found in the line, starting from index "
+                                                              + lastColumn.get() + "\n" + line);*/
                       IntStream.range(0, s.length())
-                               .mapToObj(i -> new Coordinate(row.get(), line.indexOf(s) + i))
-                               .forEach(c -> numbers.put(c, number));
+                               .mapToObj(i -> new Coordinate(row.get(), column + i))
+                               .forEach(c -> {
+                                   number.locations.add(c);
+                                   numbers.put(c, number);
+                               });
+                      lastColumn.set(column + s.length());
                   });
 
-            // for (int column = 0; column < line.length(); column++) {
-            // char symbol = line.charAt(column);
-            // if (!('.' == symbol || Character.isDigit(symbol)))
-            // symbols.add(new Coordinate(row, column));
-            // }
             row.incrementAndGet();
         }
 
-        log.debug("Found the following numbers: {}", numbers);
+        log.trace("Found the following numbers:\n{}", formatFoundNumberMap(numbers));
 
         return numbers;
     }
@@ -204,23 +277,32 @@ public class Day3 {
      * Periods (.) do not count as a symbol.
      * 
      * @param lines The lines of text in which to find symbols.
-     * @return A list of {@link Coordinate}s containing symbols.
+     * @return A list of {@link FoundSymbol}s.
      */
-    private static List<Coordinate> listSymbols(List<String> lines) {
+    private static List<FoundSymbol> listSymbols(List<String> lines) {
 
-        List<Coordinate> symbols = new ArrayList<>();
+        List<FoundSymbol> symbols = new ArrayList<>();
         int row = 0;
         for (String line : lines) {
             for (int column = 0; column < line.length(); column++) {
                 char symbol = line.charAt(column);
                 if (!('.' == symbol || Character.isDigit(symbol)))
-                    symbols.add(new Coordinate(row, column));
+                    symbols.add(new FoundSymbol(symbol, new Coordinate(row, column)));
             }
             row++;
         }
 
-        log.debug("Found symbols: {}", symbols);
+        // log.trace("Found symbols:\n{}",
+        // symbols.stream().map(FoundSymbol::toString).collect(Collectors.joining("\n")));
         return symbols;
+    }
+
+    private static String formatFoundNumberMap(Map<Coordinate, FoundNumber> map) {
+        return map.values().stream()
+                  .distinct()
+                  .sorted(Comparator.comparing(n -> n.locations.get(0)))
+                  .map(FoundNumber::toString)
+                  .collect(Collectors.joining(",\n"));
     }
 
     private static int part2(final List<String> lines) {
