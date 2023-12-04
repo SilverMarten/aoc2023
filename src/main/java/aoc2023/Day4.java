@@ -50,11 +50,11 @@ public class Day4 {
         log.info("Part 2:");
         log.setLevel(Level.DEBUG);
 
-        log.info("{}", part2(testLines));
+        log.info("You end up with {} total scratch cards. (should be 30)", part2(testLines));
 
         log.setLevel(Level.INFO);
 
-        log.info("{}", part2(lines));
+        log.info("You end up with {} total scratch cards.", part2(lines));
     }
 
     /**
@@ -69,7 +69,7 @@ public class Day4 {
     private static int part1(final List<String> lines) {
 
         return lines.stream().mapToInt(l -> {
-            int winningNumbersStart = l.indexOf(':') + 1;
+            int winningNumbersStart = l.indexOf(':') + 2;
             int winningNumbersEnd = l.indexOf("|") - 1;
             String[] winningNumbersArray = l.substring(winningNumbersStart, winningNumbersEnd).split(" ");
             log.debug("Winning numbers: {}", Arrays.toString(winningNumbersArray));
@@ -80,7 +80,7 @@ public class Day4 {
 
             int cardNumbersStart = winningNumbersEnd + 3;
             String[] cardNumbersArray = l.substring(cardNumbersStart).split(" ");
-            log.debug("Winning numbers: {}", Arrays.toString(cardNumbersArray));
+            log.debug("Card numbers: {}", Arrays.toString(cardNumbersArray));
             Set<Integer> cardNumbers = Stream.of(cardNumbersArray)
                                              .filter(NumberUtils::isParsable)
                                              .map(Integer::valueOf)
@@ -93,6 +93,14 @@ public class Day4 {
 
     }
 
+    /**
+     * Winning matches result in copies of subsequent cards. How many total
+     * scratch cards do you end up with?
+     * 
+     * @param lines
+     *            The lines representing scratch cards.
+     * @return The total number of scratch cards.
+     */
     private static int part2(final List<String> lines) {
 
         return -1;
