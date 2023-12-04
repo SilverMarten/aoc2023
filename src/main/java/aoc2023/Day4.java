@@ -1,9 +1,13 @@
 package aoc2023;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.math.NumberUtils;
@@ -68,29 +72,39 @@ public class Day4 {
      */
     private static int part1(final List<String> lines) {
 
-        return lines.stream().mapToInt(l -> {
-            int winningNumbersStart = l.indexOf(':') + 2;
-            int winningNumbersEnd = l.indexOf("|") - 1;
-            String[] winningNumbersArray = l.substring(winningNumbersStart, winningNumbersEnd).split(" ");
-            log.debug("Winning numbers: {}", Arrays.toString(winningNumbersArray));
-            Set<Integer> winningNumbers = Stream.of(winningNumbersArray)
-                                                .filter(NumberUtils::isParsable)
-                                                .map(Integer::valueOf)
-                                                .collect(Collectors.toSet());
+        return lines.stream().mapToInt(Day4::countWinningNumbers)
+                    .map(n -> (int) Math.pow(2, n - 1.0))
+                    .sum();
 
-            int cardNumbersStart = winningNumbersEnd + 3;
-            String[] cardNumbersArray = l.substring(cardNumbersStart).split(" ");
-            log.debug("Card numbers: {}", Arrays.toString(cardNumbersArray));
-            Set<Integer> cardNumbers = Stream.of(cardNumbersArray)
-                                             .filter(NumberUtils::isParsable)
-                                             .map(Integer::valueOf)
-                                             .collect(Collectors.toSet());
+    }
 
-            winningNumbers.retainAll(cardNumbers);
-            int matches = winningNumbers.size();
-            return (int) Math.pow(2, matches - 1);
-        }).sum();
+    /**
+     * Count the number of winning numbers on this card.
+     * 
+     * @param cardLine
+     *            The line representing the card.
+     * @return The number of winning numbers on this card.
+     */
+    private static int countWinningNumbers(String cardLine) {
+        int winningNumbersStart = cardLine.indexOf(':') + 2;
+        int winningNumbersEnd = cardLine.indexOf("|") - 1;
+        String[] winningNumbersArray = cardLine.substring(winningNumbersStart, winningNumbersEnd).split(" ");
+        log.debug("Winning numbers: {}", Arrays.toString(winningNumbersArray));
+        Set<Integer> winningNumbers = Stream.of(winningNumbersArray)
+                                            .filter(NumberUtils::isParsable)
+                                            .map(Integer::valueOf)
+                                            .collect(Collectors.toSet());
 
+        int cardNumbersStart = winningNumbersEnd + 3;
+        String[] cardNumbersArray = cardLine.substring(cardNumbersStart).split(" ");
+        log.debug("Card numbers: {}", Arrays.toString(cardNumbersArray));
+        Set<Integer> cardNumbers = Stream.of(cardNumbersArray)
+                                         .filter(NumberUtils::isParsable)
+                                         .map(Integer::valueOf)
+                                         .collect(Collectors.toSet());
+
+        winningNumbers.retainAll(cardNumbers);
+        return winningNumbers.size();
     }
 
     /**
@@ -103,7 +117,28 @@ public class Day4 {
      */
     private static int part2(final List<String> lines) {
 
-        return -1;
+        Map<Integer, AtomicInteger> cards = new HashMap<>();
+
+        // Initialise the cards map with the number of cards at the start
+        int totalCards = lines.size();
+        IntStream.rangeClosed(1, totalCards)
+                 .forEach(i -> cards.put(i, new AtomicInteger(1)));
+
+        int cardNumber = 1;
+        for (String line : lines) {
+            // Count the matches
+            int matches = countWinningNumbers(line);
+
+            int numberOfCards = cards.get(cardNumber).get();
+            // Add that many, times the number of those cards, to the map
+            IntStream.rangeClosed(cardNumber + 1, cardNumber + matches)
+                     .filter(i -> i <= totalCards)
+                     .forEach(i -> cards.get(i).accumulateAndGet(numberOfCards, Math::addExact));
+
+            cardNumber++;
+        }
+
+        return cards.values().stream().mapToInt(AtomicInteger::get).sum();
     }
 
 }
