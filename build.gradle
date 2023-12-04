@@ -24,18 +24,18 @@ tasks.register('newDay', Copy){
                                  .findAll { it.name ==~ /Day.*.java/ }
                                  .size() + 1
                                                  
-    logger.info('Generating Day {}', nextDay);
+    logger.info('Generating Day {}', nextDay)
 
     from 'src/main/java-templates/Day.java'
     
     into targetDir
     
     rename { 
-        def fileName = 'Day' + nextDay + '.java';
-        logger.info('New file name: {}', fileName);
+        def fileName = 'Day' + nextDay + '.java'
+        logger.info('New file name: {}', fileName)
         
         if(file(targetDir + fileName).exists())
-            throw new GradleException('Destination file "' + fileName + '" already exists!');
+            throw new GradleException('Destination file "' + fileName + '" already exists!')
 
         fileName;
     }
@@ -49,11 +49,24 @@ tasks.register('newDay', Copy){
         def testInputFile = file(resources + 'testInput/Day' + nextDay + '.txt')
         
         if(inputFile.exists() && inputFile.size() > 0)
-            throw new GradleException('Destination file "' + inputFile + '" already exists!');
+            throw new GradleException('Destination file "' + inputFile + '" already exists!')
         inputFile.text = ''
+        // Download the puzzle input
+        if(project.hasProperty('sessionId')){
+            try {
+                HttpURLConnection con = (HttpURLConnection) new URL('https://adventofcode.com/2023/day/3/input').openConnection()
+                con.setRequestMethod("GET")
+                con.addRequestProperty("Cookie","session=$sessionId")
+                BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()))
+                
+                inputFile.withOutputStream{ it << in }
+            } catch (java.io.IOException e){
+                project.logger.lifecycle("Could not download puzzle input", e)
+            }
+        }
         
         if(testInputFile.exists() && inputFile.size() > 0)
-            throw new GradleException('Destination file "' + testInputFile + '" already exists!');
+            throw new GradleException('Destination file "' + testInputFile + '" already exists!')
         testInputFile.text = ''
     }
 }
