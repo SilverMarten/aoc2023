@@ -1,8 +1,12 @@
 package aoc2023;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -53,7 +57,7 @@ public class Day5 {
 
         @Override
         public String toString() {
-            return String.format("%s, translationValue=%s]", idRange, translationValue);
+            return String.format("%s, translationValue=%s", idRange, translationValue);
         }
 
     }
@@ -180,27 +184,42 @@ public class Day5 {
         for (Range<Long> seedRange : seeds) {
             log.debug("For seed range: {}", seedRange);
             // Compare this range with the ranges for each stage of the Almanac
-            List<Range<Long>> nextRanges = new ArrayList<>();
+            Set<Range<Long>> nextRanges = new HashSet<>();
             nextRanges.add(seedRange);
 
             for (List<AlmanacMap> stage : almanacMaps) {
-                List<Range<Long>> currentRanges = new ArrayList<>(nextRanges);
-//                nextRanges.clear();
+                log.trace("Stage: {}", stage);
+                Queue<Range<Long>> currentRanges = new LinkedList<>(nextRanges);
 
-                for (Range<Long> currentRange : currentRanges) {
+                while (!currentRanges.isEmpty()) {
+                    Range<Long> currentRange = currentRanges.poll();
                     for (AlmanacMap map : stage) {
+                        log.trace("Checking {} against {}", currentRange, map.idRange);
                         // Split the ranges if there's overlap, and translate to the new range
                         if (currentRange.isOverlappedBy(map.idRange)) {
+
                             // Remove the current range
                             nextRanges.remove(currentRange);
+
                             // Translate and add the overlap
                             Range<Long> overlap = currentRange.intersectionWith(map.idRange);
-                            nextRanges.add(Range.between(map.mapId(overlap.getMinimum()).get(), map.mapId(overlap.getMaximum()).get()));
-                            // Remove the overlap from the current range, and add the remainders back to the current queue
-                            if (currentRange.getMinimum() < map.idRange.getMinimum())
-                                nextRanges.add(Range.between(currentRange.getMinimum(), map.idRange.getMinimum() - 1));
-                            if (currentRange.getMaximum() > map.idRange.getMaximum())
-                                nextRanges.add(Range.between(map.idRange.getMaximum() + 1, currentRange.getMaximum()));
+                            Range<Long> translatedRange = Range.between(overlap.getMinimum() + map.translationValue,
+                                                                        overlap.getMaximum() + map.translationValue);
+                            nextRanges.add(translatedRange);
+                            log.trace("{} overlaps {} ({}). Adding {} to next stage.", currentRange, map, overlap, translatedRange);
+
+                            // Remove the overlap from the current range, and add the remainders back to the current queue to be re-checked
+                            // Also add it to the next set in case it doesn't match anything
+                            if (currentRange.getMinimum() < map.idRange.getMinimum()) {
+                                Range<Long> leftRemainder = Range.between(currentRange.getMinimum(), map.idRange.getMinimum() - 1);
+                                currentRanges.add(leftRemainder);
+                                nextRanges.add(leftRemainder);
+                            }
+                            if (currentRange.getMaximum() > map.idRange.getMaximum()) {
+                                Range<Long> rightRemainder = Range.between(map.idRange.getMaximum() + 1, currentRange.getMaximum());
+                                currentRanges.add(rightRemainder);
+                                nextRanges.add(rightRemainder);
+                            }
                         }
 
                     }
