@@ -29,7 +29,7 @@ public class Day${day}{
 
         // Read the test file
         List<String> testLines = FileUtils.readFile(TEST_INPUT_TXT);
-        log.trace(testLines.toString());
+        log.trace("{}", testLines);
 
         log.info("{}", part1(testLines));
 
