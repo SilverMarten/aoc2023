@@ -2,6 +2,7 @@ package aoc2023;
 
 import java.util.List;
 import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
@@ -48,11 +49,11 @@ public class Day6 {
         log.info("Part 2:");
         log.setLevel(Level.DEBUG);
 
-        log.info("{}", part2(testLines));
+        log.info("The the number of ways the race can be won is {} (should be 71503)", part2(testLines));
 
         log.setLevel(Level.INFO);
 
-        log.info("{}", part2(lines));
+        log.info("The the number of ways the race can be won is {}", part2(lines));
     }
 
     /**
@@ -87,9 +88,24 @@ public class Day6 {
         return product;
     }
 
-    private static int part2(final List<String> lines) {
+    /**
+     * How many ways can the race be won?
+     * 
+     * @param lines
+     *            The time and distance lines for the race. All spaces between
+     *            digits are to be ignored.
+     * @return The number of ways that the race can be won.
+     */
+    private static long part2(final List<String> lines) {
 
-        return -1;
+        long time = Long.parseLong(StringUtils.getDigits(lines.get(0)));
+        long distance = Long.parseLong(StringUtils.getDigits(lines.get(1)));
+        log.debug("Race: time = {}, distance = {}", time, distance);
+
+        return LongStream.range(1, time)
+                         .filter(t -> t * (time - t) > distance)
+                         .count();
+
     }
 
 }
