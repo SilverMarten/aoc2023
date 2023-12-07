@@ -3,6 +3,8 @@ package aoc2023;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -29,16 +31,16 @@ public class Day7 {
 
     private static final String TEST_INPUT_TXT = "testInput/Day7.txt";
 
-    private static final class CardHand implements Comparable<CardHand> {
+    private static class CardHand implements Comparable<CardHand> {
 
-        private static final String CARDS = "AKQJT98765432";
-        private static final String CARD_INDEX = "abcdefghijklm";
-        private static final List<String> RANKS = List.of("5", "41", "32", "311", "221", "2111", "11111");
+        protected static final String CARDS = "AKQJT98765432";
+        protected static final String CARD_INDEX = "abcdefghijklm";
+        protected static final List<String> RANKS = List.of("5", "41", "32", "311", "221", "2111", "11111");
 
         int type;
         int wager;
         String cards;
-        private String index;
+        protected String index;
 
         public CardHand(int wager, String cards) {
             this.wager = wager;
@@ -56,7 +58,7 @@ public class Day7 {
          *            The String representing the cards
          * @return The type, 1 being the highest
          */
-        private static int findType(String cards) {
+        protected static int findType(String cards) {
 
             String cardinality = CollectionUtils.getCardinalityMap(Arrays.asList(cards.split("")))
                                                 .values().stream()
@@ -83,6 +85,55 @@ public class Day7 {
 
     }
 
+    private static class CardHandWithJokers extends CardHand {
+
+        private static final String CARDS_WITH_JOKERS = "AKQT98765432J";
+
+        public CardHandWithJokers(int wager, String cards) {
+            super(wager, cards);
+            // Create a lexicographical index of the cards to make ordering easier
+            this.index = StringUtils.replaceChars(this.cards, CARDS_WITH_JOKERS, CARD_INDEX);
+            this.type = findType(cards);
+        }
+
+        /**
+         * Given a set of cards, with jokers, figure out its type based on
+         * number of repeated cards.
+         * 
+         * @param cards
+         *            The String representing the cards
+         * @return The type, 1 being the highest
+         */
+        protected static int findType(String cards) {
+
+            Map<String, Integer> cardinalityMap = CollectionUtils.getCardinalityMap(Arrays.asList(cards.split("")));
+
+            // If there are jokers, replace them with the most useful card
+            if (cardinalityMap.containsKey("J")) {
+                cardinalityMap.remove("J");
+                String newCard = cardinalityMap.entrySet()
+                                               .stream()
+                                               .sorted((o1, o2) -> Comparator.<Entry<String, Integer>> comparingInt(Entry::getValue)
+                                                                             .reversed().compare(o1, o2))
+                                               .findFirst()
+                                               .map(Entry::getKey)
+                                               .orElse("");
+                cards = cards.replaceAll("J", newCard);
+                cardinalityMap = CollectionUtils.getCardinalityMap(Arrays.asList(cards.split("")));
+            }
+
+            String cardinality = cardinalityMap.values().stream()
+                                               .sorted(Comparator.reverseOrder())
+                                               .map(Object::toString)
+                                               .collect(Collectors.joining());
+            log.trace("{} ({})", cards, cardinality);
+
+            return RANKS.indexOf(cardinality) + 1;
+
+        }
+
+    }
+
     public static void main(String[] args) {
 
         log.info("Part 1:");
@@ -103,13 +154,13 @@ public class Day7 {
 
         // PART 2
         log.info("Part 2:");
-        log.setLevel(Level.DEBUG);
+        log.setLevel(Level.TRACE);
 
-        log.info("{}", part2(testLines));
+        log.info("The new total winnings are: {} (should be 5905)", part2(testLines));
 
         log.setLevel(Level.INFO);
 
-        log.info("{}", part2(lines));
+        log.info("The new total winnings are: {} (should be higher than 241254630 and 243092105)", part2(lines));
     }
 
     /**
@@ -132,9 +183,24 @@ public class Day7 {
         return sum.get();
     }
 
+    /**
+     * What are the new total winnings?
+     * 
+     * @param lines
+     *            The lines representing card hands
+     * @return The total winnings for the card hands
+     */
     private static int part2(final List<String> lines) {
 
-        return -1;
+        AtomicInteger ordinal = new AtomicInteger(1);
+        AtomicInteger sum = new AtomicInteger(0);
+        lines.stream()
+             .map(l -> new CardHandWithJokers(Integer.parseInt(l.substring(6)), l.substring(0, 5)))
+             .sorted()
+             .peek(h -> log.debug(h.toString()))
+             .forEach(h -> sum.getAndAdd(h.wager * ordinal.getAndIncrement()));
+
+        return sum.get();
     }
 
 }
