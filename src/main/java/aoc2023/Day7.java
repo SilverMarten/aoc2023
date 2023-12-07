@@ -117,7 +117,7 @@ public class Day7 {
                                                                              .reversed().compare(o1, o2))
                                                .findFirst()
                                                .map(Entry::getKey)
-                                               .orElse("");
+                                               .orElse("A");
                 cards = cards.replaceAll("J", newCard);
                 cardinalityMap = CollectionUtils.getCardinalityMap(Arrays.asList(cards.split("")));
             }
