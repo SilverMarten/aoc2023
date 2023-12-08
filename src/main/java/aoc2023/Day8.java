@@ -1,6 +1,8 @@
 package aoc2023;
 
+import java.math.BigInteger;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -34,6 +36,9 @@ public class Day8 {
     private static final String STARTING_NODE = "AAA";
     private static final String ENDING_NODE = "ZZZ";
 
+    /**
+     * Basic left-right node.
+     */
     private static final class Node {
         String label;
         Node left;
@@ -92,10 +97,11 @@ public class Day8 {
 
         // PART 2
         log.info("Part 2:");
-        log.setLevel(Level.DEBUG);
+        log.setLevel(Level.TRACE);
 
         log.info("It takes {} steps for all starting nodes to reach the end. (should be 6)", part2(testLines3));
 
+        log.setLevel(Level.DEBUG);
         //        log.setLevel(Level.INFO);
 
         log.info("It takes {} steps for all starting nodes to reach the end.", part2(lines));
@@ -155,9 +161,10 @@ public class Day8 {
      * @return The number of steps of a equal path from all nodes ending in "A"
      *         to any node ending in "Z".
      */
-    private static int part2(final List<String> lines) {
+    private static long part2(final List<String> lines) {
 
         String[] steps = lines.get(0).split("");
+        log.debug("Steps: {}", lines.get(0));
 
         // Parse into nodes
         Map<String, Node> nodeMap = new HashMap<>();
@@ -179,27 +186,55 @@ public class Day8 {
                                         .map(Entry::getValue)
                                         .collect(Collectors.toSet());
         int stepsTaken = 0;
-        
+
         // Try checking the length of the path to an end for each starting node
-        
-        boolean allAtEnd = false;
-        while (!allAtEnd) {
-            log.trace(currentNodes.toString());
 
-            boolean goLeft = "L".equals(steps[stepsTaken % steps.length]);
+        Set<Integer> individualStepsTaken = new HashSet<>();
+        for (Node startingNode : currentNodes) {
+            stepsTaken = 0;
+            Node currentNode = startingNode;
+            while (!currentNode.label.endsWith("Z")) {
+                log.trace(currentNode.toString());
 
-            currentNodes = currentNodes.stream()
-                                       .map(n -> goLeft ? n.left : n.right)
-                                       .collect(Collectors.toSet());
-
-            allAtEnd = currentNodes.stream().allMatch(n -> n.label.endsWith("Z"));
-
-            log.debug("{}", currentNodes.stream().map(n -> n.label).collect(Collectors.joining(", ")));
-            stepsTaken++;
+                if ("L".equals(steps[stepsTaken % steps.length]))
+                    currentNode = currentNode.left;
+                else
+                    currentNode = currentNode.right;
+                stepsTaken++;
+            }
+            log.trace(currentNode.toString());
+            log.debug("It took {} (steps.length * {}) steps to get from {} to {}.", stepsTaken, stepsTaken / (double) steps.length,
+                      startingNode, currentNode);
+            individualStepsTaken.add(stepsTaken);
         }
-        log.trace(currentNodes.toString());
 
-        return stepsTaken;
+        // Since they're all a multiple of steps.length compute LCM
+        BigInteger lcm = individualStepsTaken.stream()
+                                             .map(BigInteger::valueOf)
+                                             .reduce(Day8::lcm)
+                                             .get();
+
+        log.debug("The LCM of all of the steps taken is: {}", lcm);
+
+        return lcm.longValue();
     }
 
+    /**
+     * Find the Lowest Common Multiple (LCM) of two numbers.
+     * 
+     * <a href=
+     * "https://www.baeldung.com/java-least-common-multiple#lcm-biginteger">Finding
+     * the Least Common Multiple in Java by Baeldung</a>
+     * 
+     * @param number1
+     *            The first of two numbers to be evaluated for LCM
+     * @param number2
+     *            The second of two numbers to be evaluated for LCM
+     * @return The LCM of the two numbers.
+     */
+    public static BigInteger lcm(BigInteger number1, BigInteger number2) {
+        BigInteger gcd = number1.gcd(number2);
+        BigInteger absProduct = number1.multiply(number2).abs();
+        return absProduct.divide(gcd);
+    }
 }
