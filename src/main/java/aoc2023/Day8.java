@@ -3,7 +3,10 @@ package aoc2023;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +29,7 @@ public class Day8 {
 
     private static final String TEST_INPUT_TXT_1 = "testInput/Day8.1.txt";
     private static final String TEST_INPUT_TXT_2 = "testInput/Day8.2.txt";
+    private static final String TEST_INPUT_TXT_3 = "testInput/Day8.3.txt";
 
     private static final String STARTING_NODE = "AAA";
     private static final String ENDING_NODE = "ZZZ";
@@ -73,6 +77,8 @@ public class Day8 {
         log.trace("{}", testLines1);
         List<String> testLines2 = FileUtils.readFile(TEST_INPUT_TXT_2);
         log.trace("{}", testLines2);
+        List<String> testLines3 = FileUtils.readFile(TEST_INPUT_TXT_3);
+        log.trace("{}", testLines3);
 
         log.info("It takes {} steps to reach the end. (should be 2)", part1(testLines1));
         log.info("It takes {} steps to reach the end. (should be 6)", part1(testLines2));
@@ -88,11 +94,11 @@ public class Day8 {
         log.info("Part 2:");
         log.setLevel(Level.DEBUG);
 
-        log.info("{}", part2(testLines1));
+        log.info("It takes {} steps for all starting nodes to reach the end. (should be 6)", part2(testLines3));
 
-        log.setLevel(Level.INFO);
+        //        log.setLevel(Level.INFO);
 
-        log.info("{}", part2(lines));
+        log.info("It takes {} steps for all starting nodes to reach the end.", part2(lines));
     }
 
     /**
@@ -134,13 +140,66 @@ public class Day8 {
                 currentNode = currentNode.right;
             stepsTaken++;
         }
+        log.debug(currentNode.toString());
 
         return stepsTaken;
     }
 
+    /**
+     * Simultaneously start on every node that ends with A. How many steps does
+     * it take before you're only on nodes that end with Z?
+     * 
+     * @param lines
+     *            The lines representing the steps to take followed by the node
+     *            definitions.
+     * @return The number of steps of a equal path from all nodes ending in "A"
+     *         to any node ending in "Z".
+     */
     private static int part2(final List<String> lines) {
 
-        return -1;
+        String[] steps = lines.get(0).split("");
+
+        // Parse into nodes
+        Map<String, Node> nodeMap = new HashMap<>();
+
+        lines.subList(2, lines.size()).forEach(l -> {
+            String label = l.substring(0, 3);
+            String leftLabel = l.substring(7, 10);
+            String rightLabel = l.substring(12, 15);
+
+            Node newNode = nodeMap.computeIfAbsent(label, Node::new);
+            newNode.left = nodeMap.computeIfAbsent(leftLabel, Node::new);
+            newNode.right = nodeMap.computeIfAbsent(rightLabel, Node::new);
+        });
+        log.debug("Nodes:\n{}", nodeMap.values());
+
+        // Follow the steps
+        Set<Node> currentNodes = nodeMap.entrySet().stream()
+                                        .filter(e -> e.getKey().endsWith("A"))
+                                        .map(Entry::getValue)
+                                        .collect(Collectors.toSet());
+        int stepsTaken = 0;
+        
+        // Try checking the length of the path to an end for each starting node
+        
+        boolean allAtEnd = false;
+        while (!allAtEnd) {
+            log.trace(currentNodes.toString());
+
+            boolean goLeft = "L".equals(steps[stepsTaken % steps.length]);
+
+            currentNodes = currentNodes.stream()
+                                       .map(n -> goLeft ? n.left : n.right)
+                                       .collect(Collectors.toSet());
+
+            allAtEnd = currentNodes.stream().allMatch(n -> n.label.endsWith("Z"));
+
+            log.debug("{}", currentNodes.stream().map(n -> n.label).collect(Collectors.joining(", ")));
+            stepsTaken++;
+        }
+        log.trace(currentNodes.toString());
+
+        return stepsTaken;
     }
 
 }
