@@ -54,7 +54,7 @@ tasks.register('newDay', Copy){
         // Download the puzzle input
         if(project.hasProperty('sessionId')){
             try {
-                HttpURLConnection con = (HttpURLConnection) new URL('https://adventofcode.com/2023/day/3/input').openConnection()
+                HttpURLConnection con = (HttpURLConnection) new URL('https://adventofcode.com/2023/day/'+nextDay+'/input').openConnection()
                 con.setRequestMethod("GET")
                 con.addRequestProperty("Cookie","session=$sessionId")
                 BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()))
