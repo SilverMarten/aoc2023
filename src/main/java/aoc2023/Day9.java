@@ -3,6 +3,7 @@ package aoc2023;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.LoggerFactory;
 
 import aoc.FileUtils;
@@ -46,11 +47,11 @@ public class Day9 {
         log.info("Part 2:");
         log.setLevel(Level.DEBUG);
 
-        log.info("{}", part2(testLines));
+        log.info("The sum of the extrapolated values is: {} (should be 2)", part2(testLines));
 
         log.setLevel(Level.INFO);
 
-        log.info("{}", part2(lines));
+        log.info("The sum of the extrapolated values is: {}", part2(lines));
     }
 
     /**
@@ -69,6 +70,12 @@ public class Day9 {
                     .sum();
     }
 
+    /**
+     * Find the next number in the given sequence of numbers.
+     * 
+     * @param sequence The sequence of numbers.
+     * @return The next value in the sequence.
+     */
     private static int findNextValue(int[] sequence) {
         log.debug("{}", Arrays.toString(sequence));
 
@@ -93,9 +100,25 @@ public class Day9 {
         return nextValue;
     }
 
+    /**
+     * What is the sum of these extrapolated values?
+     * 
+     * @param lines The sequences of values for which the previous digits need to be
+     *     estimated.
+     * @return The sum of the extrapolated values for each sequence.
+     */
     private static int part2(final List<String> lines) {
 
-        return -1;
+        return lines.stream()
+                    .map(l -> Arrays.asList(l.split(" "))
+                                    .stream()
+                                    .mapToInt(Integer::valueOf).toArray())
+                    .map(a -> {
+                        ArrayUtils.reverse(a);
+                        return a;
+                    })
+                    .mapToInt(Day9::findNextValue)
+                    .sum();
     }
 
 }
