@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -17,6 +16,7 @@ import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.LoggerFactory;
 
+import aoc.Coordinate;
 import aoc.FileUtils;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -35,67 +35,6 @@ public class Day3 {
     private static final String INPUT_TXT = "input/Day3.txt";
 
     private static final String TEST_INPUT_TXT = "testInput/Day3.txt";
-
-    private static final class Coordinate implements Comparable<Coordinate> {
-        int row;
-        int column;
-
-        Coordinate(int row, int column) {
-            this.row = row;
-            this.column = column;
-        }
-
-        /**
-         * @return The set of adjacent coordinates to this coordinate.
-         */
-        Set<Coordinate> findAdjacent() {
-            return IntStream.rangeClosed(-1, 1)
-                            .mapToObj(x -> IntStream.rangeClosed(-1, 1)
-                                                    .filter(y -> !(x == 0 && y == 0))
-                                                    .mapToObj(y -> new Coordinate(this.row + y, this.column + x)))
-                            .flatMap(Function.identity())
-                            // .filter(c -> c.column >= 0 && c.row >= 0)
-                            .collect(Collectors.toSet());
-        }
-
-        @Override
-        public int hashCode() {
-            final int prime = 31;
-            int result = 1;
-            result = prime * result + column;
-            result = prime * result + row;
-            return result;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj)
-                return true;
-            if (obj == null)
-                return false;
-            if (getClass() != obj.getClass())
-                return false;
-            Coordinate other = (Coordinate) obj;
-            if (column != other.column)
-                return false;
-            if (row != other.row)
-                return false;
-            return true;
-        }
-
-        @Override
-        public String toString() {
-            return String.format("(row=%s, column=%s)", row, column);
-        }
-
-        @Override
-        public int compareTo(Coordinate o) {
-            int result = Integer.compare(this.row, o.row);
-
-            return result == 0 ? Integer.compare(this.column, o.column) : result;
-        }
-
-    }
 
     /**
      * A container to hold instances of numbers found in the input, which may be a
