@@ -1,9 +1,12 @@
 package aoc2023;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -32,15 +35,23 @@ public class Day10 {
 
     static final class Pipe {
         enum PipeType {
-            VERTICAL('|'), HORIZONTAL('-'), NORTH_EAST('L'), NORTH_WEST('J'), SOUTH_WEST('7'), SOUTH_EAST('F'), START('S');
+            VERTICAL('|', new int[][] { { -1, 0 }, { 1, 0 } }),
+            HORIZONTAL('-', new int[][] { { 0, -1 }, { 0, 1 } }),
+            NORTH_EAST('L', new int[][] { { -1, 0 }, { 0, 1 } }),
+            NORTH_WEST('J', new int[][] { { -1, 0 }, { 0, -1 } }),
+            SOUTH_WEST('7', new int[][] { { 0, -1 }, { 1, 0 } }),
+            SOUTH_EAST('F', new int[][] { { 0, 1 }, { 1, 0 } }),
+            START('S', new int[][] { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } });
 
             static final Map<Character, PipeType> enumMap = Arrays.asList(PipeType.values())
                                                                   .stream()
                                                                   .collect(Collectors.toMap(p -> p.symbol, p -> p));
             final char symbol;
+            final Set<int[]> connectionDirections;
 
-            private PipeType(char symbol) {
+            private PipeType(char symbol, int[][] connections) {
                 this.symbol = symbol;
+                this.connectionDirections = Set.of(connections);
             }
 
             static PipeType fromSymbol(char symbol) {
@@ -51,10 +62,23 @@ public class Day10 {
 
         final Coordinate location;
         final PipeType type;
+        // final Set<Pipe> connections;
 
         public Pipe(Coordinate location, PipeType type) {
             this.location = location;
             this.type = type;
+            // this.connections = new HashSet<>(2);
+        }
+
+        public Set<Coordinate> getConnections() {
+            return this.type.connectionDirections.stream()
+                                                 .map(d -> new Coordinate(this.location.getRow() + d[0],
+                                                                          this.location.getColumn() + d[1]))
+                                                 .collect(Collectors.toSet());
+        }
+
+        public String toString() {
+            return String.format("%s %s", this.type.symbol, this.location);
         }
 
     }
@@ -93,9 +117,9 @@ public class Day10 {
      * position to the point farthest from the starting position?
      * 
      * @param lines
-     *            The lines which describe the map of pipes.
+     *     The lines which describe the map of pipes.
      * @return The number of steps from the starting position to the farthest
-     *         point in the loop.
+     *     point in the loop.
      */
     private static int part1(final List<String> lines) {
 
@@ -109,24 +133,55 @@ public class Day10 {
                                              .flatMap(l -> l.chars()
                                                             .peek(c -> column.incrementAndGet())
                                                             .filter(c -> c != '.')
-                                                            .mapToObj(c -> new Pipe(new Coordinate(row.get(), column.get()),
+                                                            .mapToObj(c -> new Pipe(new Coordinate(row.get(),
+                                                                                                   column.get()),
                                                                                     PipeType.fromSymbol((char) c))))
                                              .collect(Collectors.toMap(p -> p.location, p -> p));
 
         log.debug("\n{}", printMap(pipeMap, row.get(), column.get()));
 
-        return -1;
+        // Map out connections
+        Pipe startPipe = pipeMap.values().stream().filter(p -> p.type == PipeType.START).findAny().get();
+        log.debug("Starting from: {}", startPipe);
+
+        int distance = 1;
+        Set<Coordinate> visitedLocations = new HashSet<>();
+        visitedLocations.add(startPipe.location);
+
+        Set<Coordinate> nextLocations = startPipe.getConnections()
+                                                 .stream()
+                                                 .map(pipeMap::get)
+                                                 .filter(Objects::nonNull)
+                                                 .filter(p -> p.getConnections().contains(startPipe.location))
+                                                 .map(p -> p.location)
+                                                 .collect(Collectors.toSet());
+
+        do {
+
+            log.debug("Next: {}", nextLocations);
+            distance++;
+            visitedLocations.addAll(nextLocations);
+
+            nextLocations = nextLocations.stream()
+                                         .map(pipeMap::get)
+                                         .flatMap(p -> p.getConnections()
+                                                        .stream()
+                                                        .filter(c -> !visitedLocations.contains(c)))
+                                         .collect(Collectors.toSet());
+        } while (nextLocations.size() > 1);
+
+        return distance;
     }
 
     /**
      * Create a printout of the map.
      * 
      * @param pipeMap
-     *            The map of coordinates to {@link Pipe} segments.
+     *     The map of coordinates to {@link Pipe} segments.
      * @param rows
-     *            The number of rows in the map.
+     *     The number of rows in the map.
      * @param columns
-     *            The number of columns in the map.
+     *     The number of columns in the map.
      * @return A string representation of the map.
      */
     private static String printMap(Map<Coordinate, Pipe> pipeMap, int rows, int columns) {

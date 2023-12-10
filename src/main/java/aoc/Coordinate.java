@@ -64,7 +64,7 @@ public final class Coordinate implements Comparable<Coordinate> {
 
     @Override
     public String toString() {
-        return String.format("(row=%s, column=%s)", row, column);
+        return String.format("(%s, %s)", row, column);
     }
 
     @Override
