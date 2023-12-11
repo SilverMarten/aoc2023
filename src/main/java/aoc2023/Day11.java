@@ -40,38 +40,109 @@ public class Day11 {
         List<String> testLines = FileUtils.readFile(TEST_INPUT_TXT);
         log.trace("{}", testLines);
 
-        log.info("The sum of the shortest paths between the stars is: {} (should be 374)", part1(testLines));
+        log.info("The sum of the shortest paths between the stars is: {} (should be 374)", solve(testLines, 2));
 
         log.setLevel(Level.INFO);
 
         // Read the real file
         List<String> lines = FileUtils.readFile(INPUT_TXT);
 
-        log.info("The sum of the shortest paths between the stars is: {}", part1(lines));
+        log.info("The sum of the shortest paths between the stars is: {}", solve(lines, 2));
 
         // PART 2
         log.info("Part 2:");
         log.setLevel(Level.DEBUG);
 
-        log.info("{}", part2(testLines));
+        log.info("The sum of the shortest paths between the stars is: {} (should be 1030)", solve(testLines, 10));
+        log.info("The sum of the shortest paths between the stars is: {} (should be 8410)", solve(testLines, 100));
 
         log.setLevel(Level.INFO);
 
-        log.info("{}", part2(lines));
+        log.info("The sum of the shortest paths between the stars is: {} (should be higher than 2070665131)", solve(lines, 1_000_000));
     }
 
     /**
-     * Expand the universe, then find the length of the shortest path between
-     * every pair of galaxies. What is the sum of these lengths?
+     * Expand the universe, by a factor of n, then find the length of the
+     * shortest path between every pair of galaxies. What is the sum of these
+     * lengths?
      * 
      * @param lines
      *            The lines representing the map of the stars.
+     * @param factor
+     *            The factor by which to expand empty rows and columns.
      * @return The sum of the shortest paths between each permutation of star
      *         pairs.
      */
-    private static int part1(final List<String> lines) {
+    private static long solve(final List<String> lines, int factor) {
 
         // Find stars
+        int rows = lines.size();
+        int columns = lines.get(0).length();
+
+        Set<Coordinate> starMap = mapStars(lines);
+
+        // Expand universe
+        Set<Coordinate> expandedStarMap = expandStarMap(rows, columns, starMap, factor);
+
+        // Compute paths
+        Queue<Coordinate> starsToCheck = new ArrayDeque<>(expandedStarMap);
+
+        long sumOfDistances = 0;
+        while (!starsToCheck.isEmpty()) {
+            Coordinate star = starsToCheck.poll();
+            //            sumOfDistances += starsToCheck.stream().mapToLong(s -> manhattanDistanceBetween(s, star)).sum();
+            for (Coordinate star2 : starsToCheck) {
+                log.atTrace()
+                   .setMessage("Distance between {} and {}: {}")
+                   .addArgument(star)
+                   .addArgument(star2)
+                   .addArgument(() -> manhattanDistanceBetween(star, star2))
+                   .log();
+                sumOfDistances += manhattanDistanceBetween(star, star2);
+            }
+        }
+
+        return sumOfDistances;
+    }
+
+    private static Set<Coordinate> expandStarMap(int rows, int columns, Set<Coordinate> starMap, int factor) {
+
+        // Find empty rows and columns
+        List<Integer> emptyRows = IntStream.rangeClosed(1, rows).boxed().collect(Collectors.toList());
+        List<Integer> emptyColumns = IntStream.rangeClosed(1, columns).boxed().collect(Collectors.toList());
+        starMap.forEach(s -> {
+            emptyRows.remove(Integer.valueOf(s.getRow()));
+            emptyColumns.remove(Integer.valueOf(s.getColumn()));
+        });
+
+        log.debug("Empty rows: {}", emptyRows);
+        log.debug("Empty columns: {}", emptyColumns);
+
+        // Move stars
+        Set<Coordinate> expandedStarMap = starMap.stream()
+                                                 .map(s -> {
+
+                                                     int rowsToAdd = (int) IterableUtils.countMatches(emptyRows,
+                                                                                                      r -> r < s.getRow()) *
+                                                                     (factor - 1);
+                                                     int columnsToAdd = (int) IterableUtils.countMatches(emptyColumns,
+                                                                                                         c -> c < s.getColumn()) *
+                                                                        (factor - 1);
+                                                     return new Coordinate(s.getRow() + rowsToAdd,
+                                                                           s.getColumn() + columnsToAdd);
+                                                 })
+                                                 .collect(Collectors.toSet());
+
+        if (factor <= 10)
+            log.atDebug().setMessage("Expanded star map:\n{}")
+               .addArgument(() -> printMap(expandedStarMap, rows + emptyRows.size() * (factor - 1),
+                                           columns + emptyColumns.size() * (factor - 1)))
+               .log();
+
+        return expandedStarMap;
+    }
+
+    private static Set<Coordinate> mapStars(List<String> lines) {
         AtomicInteger row = new AtomicInteger(0);
         AtomicInteger column = new AtomicInteger(0);
 
@@ -88,55 +159,7 @@ public class Day11 {
            .addArgument(() -> printMap(starMap, row.get(), column.get()))
            .log();
 
-        // Expand universe
-
-        // Find empty rows and columns
-        List<Integer> emptyRows = IntStream.rangeClosed(1, row.get()).boxed().collect(Collectors.toList());
-        List<Integer> emptyColumns = IntStream.rangeClosed(1, column.get()).boxed().collect(Collectors.toList());
-        starMap.forEach(s -> {
-            emptyRows.remove(Integer.valueOf(s.getRow()));
-            emptyColumns.remove(Integer.valueOf(s.getColumn()));
-        });
-
-        log.debug("Empty rows: {}", emptyRows);
-        log.debug("Empty columns: {}", emptyColumns);
-
-        // Move stars
-        Set<Coordinate> expandedStarMap = starMap.stream()
-                                                 .map(s -> new Coordinate(s.getRow() +
-                                                                          (int) IterableUtils.countMatches(emptyRows, r -> r < s.getRow()),
-                                                                          s.getColumn() + (int) IterableUtils.countMatches(emptyColumns,
-                                                                                                                           c -> c < s.getColumn())))
-                                                 .collect(Collectors.toSet());
-
-        log.atDebug().setMessage("Expanded star map:\n{}")
-           .addArgument(() -> printMap(expandedStarMap, row.get() + emptyRows.size(), column.get() + emptyColumns.size()))
-           .log();
-
-        // Compute paths
-        Queue<Coordinate> starsToCheck = new ArrayDeque<>(expandedStarMap);
-
-        int sumOfDistances = 0;
-        while (!starsToCheck.isEmpty()) {
-            Coordinate star = starsToCheck.poll();
-            //            sumOfDistances += starsToCheck.stream().mapToInt(s -> manhattanDistanceBetween(s, star)).sum();
-            for (Coordinate star2 : starsToCheck) {
-                log.atTrace()
-                   .setMessage("Distance between {} and {}: {}")
-                   .addArgument(star)
-                   .addArgument(star2)
-                   .addArgument(() -> manhattanDistanceBetween(star, star2))
-                   .log();
-                sumOfDistances += manhattanDistanceBetween(star, star2);
-            }
-        }
-
-        return sumOfDistances;
-    }
-
-    private static int part2(final List<String> lines) {
-
-        return -1;
+        return starMap;
     }
 
     /**
@@ -149,7 +172,7 @@ public class Day11 {
      * @return The sum of the difference between the rows and columns of the two
      *         points.
      */
-    private static int manhattanDistanceBetween(Coordinate point1, Coordinate point2) {
+    private static long manhattanDistanceBetween(Coordinate point1, Coordinate point2) {
         return Math.abs(point1.getRow() - point2.getRow()) + Math.abs(point1.getColumn() - point2.getColumn());
     }
 
