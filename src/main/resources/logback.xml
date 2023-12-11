@@ -22,7 +22,4 @@
     <logger name="aoc" level="info" additivity="false">
         <appender-ref ref="colour" />
     </logger>
-    <logger name="aoc2023" level="info" additivity="false">
-        <appender-ref ref="colour" />
-    </logger>
 </configuration>

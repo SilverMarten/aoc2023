@@ -1,4 +1,4 @@
-package aoc2023;
+package aoc._2023;
 
 import java.util.ArrayDeque;
 import java.util.Arrays;
@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import aoc.Coordinate;
 import aoc.FileUtils;
-import aoc2023.Day10.Pipe.PipeType;
+import aoc._2023.Day10.Pipe.PipeType;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
