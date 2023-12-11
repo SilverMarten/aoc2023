@@ -12,7 +12,8 @@ repositories {
 dependencies {
     implementation 'org.apache.commons:commons-lang3:latest.release'
     implementation 'org.apache.commons:commons-collections4:latest.release'
-    implementation 'ch.qos.logback:logback-classic:latest.release'
+    implementation 'org.slf4j:slf4j-api:latest.release'
+    runtimeOnly 'ch.qos.logback:logback-classic:latest.release'
 }
 
 // Create a new DayN.java file from the template.
@@ -23,8 +24,8 @@ tasks.register('newDay', Copy){
     def nextDay = file(targetDir).listFiles()
                                  .findAll { it.name ==~ /Day.*.java/ }
                                  .size() + 1
-                                                 
-    logger.info('Generating Day {}', nextDay)
+    
+    logger.lifecycle('Generating Day {}', nextDay)
 
     from 'src/main/java-templates/Day.java'
     
@@ -54,9 +55,10 @@ tasks.register('newDay', Copy){
         // Download the puzzle input
         if(project.hasProperty('sessionId')){
             try {
-                HttpURLConnection con = (HttpURLConnection) new URL('https://adventofcode.com/2023/day/'+nextDay+'/input').openConnection()
+                HttpURLConnection con = (HttpURLConnection) new URL('https://adventofcode.com/2023/day/' + nextDay + '/input').openConnection()
                 con.setRequestMethod("GET")
                 con.addRequestProperty("Cookie","session=$sessionId")
+                //con.addRequestProperty("Proxy-Authorization","Basic $proxyAuth")
                 BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()))
                 
                 inputFile.withOutputStream{ it << in }
