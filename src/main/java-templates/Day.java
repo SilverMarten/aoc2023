@@ -1,4 +1,4 @@
-package aoc2023;
+package aoc._2023;
 
 import java.util.List;
 import org.slf4j.LoggerFactory;

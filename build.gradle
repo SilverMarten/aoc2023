@@ -19,7 +19,7 @@ dependencies {
 // Create a new DayN.java file from the template.
 tasks.register('newDay', Copy){
     
-    def targetDir = '/src/main/java/aoc2023/'
+    def targetDir = '/src/main/java/aoc/_2023/'
     
     def nextDay = file(targetDir).listFiles()
                                  .findAll { it.name ==~ /Day.*.java/ }
