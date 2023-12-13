@@ -58,7 +58,7 @@ public class Day12 {
 
         log.setLevel(Level.DEBUG);
 
-        log.info("The sum of the different arrangements of the springs is: {} (should be less than 2,059,101,273,163)",
+        log.info("The sum of the different arrangements of the springs is: {} (should be less than 2,059,101,273,163, but greater than 19,302,506,771)",
                  part2(lines));
     }
 
@@ -110,7 +110,7 @@ public class Day12 {
                                                             .map(Integer::parseInt)
                                                             .collect(Collectors.toList()),
                                                       cache))
-                    .peek(i -> log.debug("{} combinations", i))
+                    .peek(i -> log.debug("{} combinations (cache size: {})", i, cache.size()))
                     .sum();
     }
 
@@ -147,17 +147,19 @@ public class Day12 {
                   visibleOperationalSprings, operationalSprings,
                   unknownSprings, springs.length, totalCombinations);*/
 
-        int combinations = 0;
-
+        String cacheKey = springString + groups.toString();
+        int combinations = cache.getOrDefault(cacheKey, 0);
+        // Return early on cache hit
+        if (cache.containsKey(cacheKey)) {
+            log.trace("{} {} - {} combinations", springString, groups, combinations);
+            return combinations;
+        }
         // Try recursion?
-        // See: https://www.reddit.com/r/adventofcode/comments/18ghux0/comment/kd0npmi/?utm_source=share&utm_medium=web2x&context=3
+        // See:
+        // https://www.reddit.com/r/adventofcode/comments/18ghux0/comment/kd0npmi/?utm_source=share&utm_medium=web2x&context=3
         // Catch the end of the recursion
         if (springString.isEmpty() || groups.isEmpty()) {
             combinations = springString.replaceAll("\\.|\\?", "").isEmpty() && groups.isEmpty() ? 1 : 0;
-        }
-        // Check cache
-        else if (cache.containsKey(springString + groups.toString())) {
-            combinations = cache.get(springString + groups.toString());
         } else {
             switch (springString.charAt(0)) {
                 // Periods at the start don't affect the outcome
@@ -198,10 +200,11 @@ public class Day12 {
 
                 default:
                     combinations = 0;
+
             }
         }
         log.trace("{} {} - {} combinations", springString, groups, combinations);
-
+        cache.put(cacheKey, combinations);
         return combinations;
 
         // Try each possibility, count the working ones
