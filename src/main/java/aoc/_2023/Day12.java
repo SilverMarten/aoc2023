@@ -1,16 +1,13 @@
 package aoc._2023;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.LoggerFactory;
 
 import aoc.FileUtils;
@@ -45,12 +42,12 @@ public class Day12 {
         log.info("The sum of the different arrangements of the springs is: {} (should be 21)", part1(testLines));
 
         log.setLevel(Level.INFO);
-//        log.setLevel(Level.DEBUG);
+        // log.setLevel(Level.DEBUG);
 
         // Read the real file
         List<String> lines = FileUtils.readFile(INPUT_TXT);
 
-        log.info("The sum of the different arrangements of the springs is: {} (should be less than 6,142,112)",
+        log.info("The sum of the different arrangements of the springs is: {} (should be less than 6,142,112, it is 7025)",
                  part1(lines));
 
         // PART 2
@@ -59,7 +56,7 @@ public class Day12 {
 
         log.info("The sum of the different arrangements of the springs is: {} (should be 525,152)", part2(testLines));
 
-        log.setLevel(Level.INFO);
+        log.setLevel(Level.DEBUG);
 
         log.info("The sum of the different arrangements of the springs is: {} (should be less than 2,059,101,273,163)",
                  part2(lines));
@@ -76,13 +73,44 @@ public class Day12 {
      */
     private static int part1(final List<String> lines) {
 
-        Map<String, List<Integer>> cache = new HashMap<>();
+        Map<String, Integer> cache = new HashMap<>();
 
         return lines.stream()
+                    .peek(log::debug)
                     .mapToInt(l -> countCombinations(l.split(" ")[0],
                                                      Stream.of(l.split(" ")[1].split(",")).map(Integer::parseInt)
                                                            .collect(Collectors.toList()),
                                                      cache))
+                    .peek(i -> log.debug("{} combinations", i))
+                    .sum();
+    }
+
+    /**
+     * For each row, count all of the different arrangements of operational and
+     * broken springs that meet the given criteria. What is the sum of those
+     * counts?
+     * 
+     * @param lines
+     *     The lines containing information about the springs, to be duplicated 5
+     *     times.
+     * @return The sum of the different arrangements of the springs
+     */
+    private static long part2(final List<String> lines) {
+
+        Map<String, Integer> cache = new HashMap<>();
+        return lines.stream()
+                    .peek(log::debug)
+                    .mapToLong(l -> countCombinations(Collections.nCopies(5, l.split(" ")[0])
+                                                                 .stream()
+                                                                 .collect(Collectors.joining("?")),
+                                                      Stream.of(Collections.nCopies(5, l.split(" ")[1])
+                                                                           .stream()
+                                                                           .collect(Collectors.joining(","))
+                                                                           .split(","))
+                                                            .map(Integer::parseInt)
+                                                            .collect(Collectors.toList()),
+                                                      cache))
+                    .peek(i -> log.debug("{} combinations", i))
                     .sum();
     }
 
@@ -98,87 +126,113 @@ public class Day12 {
      *     information in the line of springs as well as the list of groups
      *     of damaged springs.
      */
-    private static int countCombinations(String springString, List<Integer> groups, Map<String, List<Integer>> cache) {
+    private static int countCombinations(String springString, List<Integer> groups, Map<String, Integer> cache) {
 
-        // Add an implicit . at the beginning and end
-        // springString = StringUtils.wrap(springString, '.');
-
-        log.trace("{} {}", springString, groups);
-        String[] springs = springString.split("");
-
+        /*String[] springs = springString.split("");
+        
         // The known number of broken springs
         int brokenSprings = groups.stream().mapToInt(Integer::intValue).sum();
-
+        
         int visbleBrokenSprings = ArrayUtils.indexesOf(springs, "#").cardinality();
-
+        
         int operationalSprings = springs.length - brokenSprings;
-
+        
         int visibleOperationalSprings = ArrayUtils.indexesOf(springs, ".").cardinality();
-
+        
         int unknownSprings = ArrayUtils.indexesOf(springs, "?").cardinality();
-
+        
         int totalCombinations = (int) Math.pow(2, unknownSprings);
         log.trace("Broken: {}/{}\tOperational: {}/{}\tUnknown: {}\tTotal springs: {}\tCombinations: {}",
                   visbleBrokenSprings, brokenSprings,
                   visibleOperationalSprings, operationalSprings,
-                  unknownSprings, springs.length, totalCombinations);
+                  unknownSprings, springs.length, totalCombinations);*/
+
+        int combinations = 0;
+
+        // Try recursion?
+        // See: https://www.reddit.com/r/adventofcode/comments/18ghux0/comment/kd0npmi/?utm_source=share&utm_medium=web2x&context=3
+        // Catch the end of the recursion
+        if (springString.isEmpty() || groups.isEmpty()) {
+            combinations = springString.replaceAll("\\.|\\?", "").isEmpty() && groups.isEmpty() ? 1 : 0;
+        }
+        // Check cache
+        else if (cache.containsKey(springString + groups.toString())) {
+            combinations = cache.get(springString + groups.toString());
+        } else {
+            switch (springString.charAt(0)) {
+                // Periods at the start don't affect the outcome
+                case '.':
+                    combinations = countCombinations(springString.substring(1), groups, cache);
+                    break;
+
+                // Could this match the first group?
+                case '#':
+                    int firstGroupSize = groups.get(0);
+                    // Not enough springs, operational springs within n, too many #s
+                    if (springString.length() < firstGroupSize
+                        || springString.substring(0, firstGroupSize).contains(".")) {
+                        // This can't be big enough for any match of the groups
+                        combinations = 0;
+                    } else if (springString.length() > firstGroupSize &&
+                               springString.charAt(firstGroupSize) == '#') {
+                        combinations = 0;
+                    } else {
+                        // Remove those characters and the group and recurse
+                        List<Integer> newGroups = new ArrayList<>(groups);
+                        newGroups.remove(0);
+                        String newSpringString = springString.substring(firstGroupSize);
+                        // A group of broken springs has to be followed by an operational string
+                        if (newSpringString.startsWith("?"))
+                            newSpringString = "." + newSpringString.substring(1);
+                        combinations = countCombinations(newSpringString,
+                                                         newGroups,
+                                                         cache);
+                    }
+                    break;
+
+                // Try both with a question mark
+                case '?':
+                    combinations = countCombinations("." + springString.substring(1), groups, cache) +
+                                   countCombinations("#" + springString.substring(1), groups, cache);
+                    break;
+
+                default:
+                    combinations = 0;
+            }
+        }
+        log.trace("{} {} - {} combinations", springString, groups, combinations);
+
+        return combinations;
 
         // Try each possibility, count the working ones
-        AtomicInteger possibleCombinations = new AtomicInteger(0);
+        /*AtomicInteger possibleCombinations = new AtomicInteger(0);
         IntStream.range(0, totalCombinations).forEach(i -> {
-            // Replace each ? with . or #, sequentially
-            String combination = springString;
-            while (combination.contains("?")) {
-                combination = combination.replaceFirst("\\?", i % 2 == 0 ? "." : "#");
-                i = i / 2;
-            }
-
-            // Check if it matches
-            String combinationToTest = combination;
-            List<Integer> groupsToTest = cache.computeIfAbsent(combinationToTest.replaceAll("\\.+", "."),
-                                                               k -> Stream.of(combinationToTest.split("\\.+"))
-                                                                          .map(String::length)
-                                                                          .filter(n -> n > 0)
-                                                                          .collect(Collectors.toList()));
-            if (groups.equals(groupsToTest)) {
-                log.trace("{} {} works", combination, groupsToTest);
-                possibleCombinations.incrementAndGet();
-            } else {
-                log.trace("{} {} invalid", combination, groupsToTest);
-            }
+        // Replace each ? with . or #, sequentially
+        String combination = springString;
+        while (combination.contains("?")) {
+            combination = combination.replaceFirst("\\?", i % 2 == 0 ? "." : "#");
+            i = i / 2;
+        }
+        
+        // Check if it matches
+        String combinationToTest = combination;
+        List<Integer> groupsToTest = cache.computeIfAbsent(combinationToTest.replaceAll("\\.+", "."),
+                                                           k -> Stream.of(combinationToTest.split("\\.+"))
+                                                                      .map(String::length)
+                                                                      .filter(n -> n > 0)
+                                                                      .collect(Collectors.toList()));
+        if (groups.equals(groupsToTest)) {
+            log.trace("{} {} works", combination, groupsToTest);
+            possibleCombinations.incrementAndGet();
+        } else {
+            log.trace("{} {} invalid", combination, groupsToTest);
+        }
         });
-
+        
         log.debug("{} {} - {} arrangement{}", springString, groups, possibleCombinations,
-                  possibleCombinations.get() > 1 ? "s" : "");
-
-        return possibleCombinations.get();
-    }
-
-    /**
-     * For each row, count all of the different arrangements of operational and
-     * broken springs that meet the given criteria. What is the sum of those
-     * counts?
-     * 
-     * @param lines
-     *     The lines containing information about the springs, to be duplicated 5
-     *     times.
-     * @return The sum of the different arrangements of the springs
-     */
-    private static long part2(final List<String> lines) {
-
-        Map<String, List<Integer>> cache = new HashMap<>();
-        return lines.stream()
-                    .mapToLong(l -> countCombinations(Collections.nCopies(5, l.split(" ")[0])
-                                                                 .stream()
-                                                                 .collect(Collectors.joining("?")),
-                                                      Stream.of(Collections.nCopies(5, l.split(" ")[1])
-                                                                           .stream()
-                                                                           .collect(Collectors.joining(","))
-                                                                           .split(","))
-                                                            .map(Integer::parseInt)
-                                                            .collect(Collectors.toList()),
-                                                      cache))
-                    .sum();
+              possibleCombinations.get() > 1 ? "s" : "");
+        
+        return possibleCombinations.get();*/
     }
 
 }
