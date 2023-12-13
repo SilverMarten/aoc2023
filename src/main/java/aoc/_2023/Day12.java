@@ -1,9 +1,9 @@
 package aoc._2023;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.ArrayUtils;
@@ -32,7 +32,7 @@ public class Day12 {
 
         log.info("Part 1:");
         log.setLevel(Level.DEBUG);
-        //        log.setLevel(Level.TRACE);
+        // log.setLevel(Level.TRACE);
 
         // Read the test file
         List<String> testLines = FileUtils.readFile(TEST_INPUT_TXT);
@@ -45,17 +45,17 @@ public class Day12 {
         // Read the real file
         List<String> lines = FileUtils.readFile(INPUT_TXT);
 
-        log.info("The sum of the different arrangements of the springs is: {} (should be less than 6,142,112)", part1(lines));
+         log.info("The sum of the different arrangements of the springs is: {} (should be less than 6,142,112)", part1(lines));
 
         // PART 2
         log.info("Part 2:");
         log.setLevel(Level.DEBUG);
 
-        log.info("{}", part2(testLines));
+        log.info("The sum of the different arrangements of the springs is: {} (should be 525,152)", part2(testLines));
 
         log.setLevel(Level.INFO);
 
-        log.info("{}", part2(lines));
+        log.info("The sum of the different arrangements of the springs is: {} (should be less than 2,059,101,273,163)", part2(lines));
     }
 
     /**
@@ -64,7 +64,7 @@ public class Day12 {
      * counts?
      * 
      * @param lines
-     *            The lines containing information about the springs
+     *     The lines containing information about the springs
      * @return The sum of the different arrangements of the springs
      */
     private static int part1(final List<String> lines) {
@@ -81,12 +81,12 @@ public class Day12 {
      * springs, find how many configurations there could be.
      * 
      * @param springString
-     *            The String describing the line of springs
+     *     The String describing the line of springs
      * @param groups
-     *            The sizes of each contiguous group of damaged springs
+     *     The sizes of each contiguous group of damaged springs
      * @return The number of combinations which would satisfy the known
-     *         information in the line of springs as well as the list of groups
-     *         of damaged springs.
+     *     information in the line of springs as well as the list of groups
+     *     of damaged springs.
      */
     private static int countCombinations(String springString, List<Integer> groups) {
 
@@ -112,15 +112,15 @@ public class Day12 {
                   unknownSprings, totalCombinations);
 
         // Try each possibility, count the working ones
-        AtomicInteger possibleCombinations = new AtomicInteger(0);
-        IntStream.range(0, totalCombinations).forEach(i -> {
+        AtomicInteger possibleCombinations = new AtomicInteger(totalCombinations);
+        /*  IntStream.range(0, totalCombinations).forEach(i -> {
             // Replace each ? with . or #, sequentially
             String combination = springString;
             while (combination.contains("?")) {
                 combination = combination.replaceFirst("\\?", i % 2 == 0 ? "." : "#");
                 i = i / 2;
             }
-
+        
             // Check if it matches
             List<Integer> groupsToTest = Stream.of(combination.split("\\.+"))
                                                .map(String::length)
@@ -132,16 +132,37 @@ public class Day12 {
             } else {
                 log.trace("{} {} invalid", combination, groupsToTest);
             }
-        });
+        });*/
 
-        log.debug("{} - {} arrangement{}", springString, possibleCombinations, possibleCombinations.get() > 1 ? "s" : "");
+        log.debug("{} {} - {} arrangement{}", springString, groups, possibleCombinations,
+                  possibleCombinations.get() > 1 ? "s" : "");
 
         return possibleCombinations.get();
     }
 
-    private static int part2(final List<String> lines) {
+    /**
+     * For each row, count all of the different arrangements of operational and
+     * broken springs that meet the given criteria. What is the sum of those
+     * counts?
+     * 
+     * @param lines
+     *     The lines containing information about the springs, to be duplicated 5
+     *     times.
+     * @return The sum of the different arrangements of the springs
+     */
+    private static long part2(final List<String> lines) {
 
-        return -1;
+        return lines.stream()
+                    .mapToLong(l -> countCombinations(Collections.nCopies(5, l.split(" ")[0])
+                                                                 .stream()
+                                                                 .collect(Collectors.joining("?")),
+                                                      Stream.of(Collections.nCopies(5, l.split(" ")[1])
+                                                                           .stream()
+                                                                           .collect(Collectors.joining(","))
+                                                                           .split(","))
+                                                            .map(Integer::parseInt)
+                                                            .collect(Collectors.toList())))
+                    .sum();
     }
 
 }
