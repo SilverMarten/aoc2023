@@ -69,12 +69,10 @@ public class Day10 {
 
         final Coordinate location;
         final PipeType type;
-        // final Set<Pipe> connections;
 
         public Pipe(Coordinate location, PipeType type) {
             this.location = location;
             this.type = type;
-            // this.connections = new HashSet<>(2);
         }
 
         public Set<Coordinate> getConnections() {
@@ -127,9 +125,9 @@ public class Day10 {
      * position to the point farthest from the starting position?
      * 
      * @param lines
-     *     The lines which describe the map of pipes.
+     *            The lines which describe the map of pipes.
      * @return The number of steps from the starting position to the farthest
-     *     point in the loop.
+     *         point in the loop.
      */
     private static int part1(final List<String> lines) {
 
@@ -148,14 +146,14 @@ public class Day10 {
                                                                                     PipeType.fromSymbol((char) c))))
                                              .collect(Collectors.toMap(p -> p.location, p -> p));
 
-        log.debug("\n{}", printPipeMap(pipeMap, row.get(), column.get()));
+        log.atDebug().setMessage("\n{}").addArgument(() -> printPipeMap(pipeMap, row.get(), column.get())).log();
 
         return findLoop(pipeMap).size() / 2;
     }
 
     private static Set<Pipe> findLoop(Map<Coordinate, Pipe> pipeMap) {
         // Map out connections
-        Pipe startPipe = pipeMap.values().stream().filter(p -> p.type == PipeType.START).findAny().get();
+        Pipe startPipe = pipeMap.values().stream().filter(p -> p.type == PipeType.START).findAny().orElseGet(() -> null);
         log.debug("Starting from: {}", startPipe);
 
         Set<Coordinate> visitedLocations = new HashSet<>();
@@ -191,15 +189,15 @@ public class Day10 {
         PipeType startType = Stream.of(PipeType.values())
                                    .filter(t -> t != PipeType.START)
                                    .filter(t -> t.connectionDirections.stream()
-                                                                      .allMatch(d -> Optional.ofNullable(pipeMap.get(new Coordinate(startLocation.getRow()
-                                                                                                                                    + d[0],
-                                                                                                                                    startLocation.getColumn()
-                                                                                                                                            + d[1])))
+                                                                      .allMatch(d -> Optional.ofNullable(pipeMap.get(new Coordinate(startLocation.getRow() +
+                                                                                                                                    d[0],
+                                                                                                                                    startLocation.getColumn() +
+                                                                                                                                          d[1])))
                                                                                              .filter(p -> p.getConnections()
                                                                                                            .contains(startLocation))
                                                                                              .isPresent()))
                                    .findAny()
-                                   .get();
+                                   .orElseGet(() -> null);
         log.debug("Starting type: {}", startType);
 
         loopSegments.remove(startPipe);
@@ -212,11 +210,11 @@ public class Day10 {
      * Create a printout of the map.
      * 
      * @param pipeMap
-     *     The map of coordinates to {@link Pipe} segments.
+     *            The map of coordinates to {@link Pipe} segments.
      * @param rows
-     *     The number of rows in the map.
+     *            The number of rows in the map.
      * @param columns
-     *     The number of columns in the map.
+     *            The number of columns in the map.
      * @return A string representation of the map.
      */
     private static String printPipeMap(Map<Coordinate, Pipe> pipeMap, int rows, int columns) {
@@ -242,44 +240,14 @@ public class Day10 {
     /**
      * Create a printout of the map.
      * 
-     * @param coordinates
-     *     The set of coordinates to display.
-     * @param rows
-     *     The number of rows in the map.
-     * @param columns
-     *     The number of columns in the map.
-     * @return A string representation of the map.
-     */
-    private static String printMap(Set<Coordinate> coordinates, int rows, int columns) {
-
-        int location = columns;
-
-        StringBuilder printout = new StringBuilder(rows * columns + rows);
-
-        while (location < (rows + 1) * columns) {
-            printout.append(coordinates.contains(new Coordinate(location / columns, location % columns + 1)) ? "O"
-                    : ".");
-
-            if (location % columns == columns - 1)
-                printout.append('\n');
-
-            location++;
-        }
-
-        return printout.toString();
-    }
-
-    /**
-     * Create a printout of the map.
-     * 
      * @param coordinates1
-     *     The set of coordinates to display as Os.
+     *            The set of coordinates to display as Os.
      * @param coordinates2
-     *     The set of coordinates to display as .s.
+     *            The set of coordinates to display as .s.
      * @param rows
-     *     The number of rows in the map.
+     *            The number of rows in the map.
      * @param columns
-     *     The number of columns in the map.
+     *            The number of columns in the map.
      * @return A string representation of the map.
      */
     private static String printMap(Set<Coordinate> coordinates1, Set<Coordinate> coordinates2, int rows, int columns) {
@@ -309,7 +277,7 @@ public class Day10 {
      * How many tiles are enclosed by the loop?
      * 
      * @param lines
-     *     The lines which describe the map of pipes.
+     *            The lines which describe the map of pipes.
      * @return The number of tiles enclosed by the loop.
      */
     private static int part2(final List<String> lines) {
@@ -329,7 +297,7 @@ public class Day10 {
                                                                                     PipeType.fromSymbol((char) c))))
                                              .collect(Collectors.toMap(p -> p.location, p -> p));
 
-        log.debug("\n{}", printPipeMap(pipeMap, row.get(), column.get()));
+        log.atDebug().setMessage("\n{}").addArgument(() -> printPipeMap(pipeMap, row.get(), column.get())).log();
 
         // Map out connections
         Set<Pipe> loopSegments = findLoop(pipeMap);
@@ -338,11 +306,13 @@ public class Day10 {
         int expandedColumns = column.get() * 3;
         int expandedRows = row.get() * 3;
         Set<Coordinate> pipeLocations = loopSegments.stream()
-                                                    .flatMap(p -> expandPipeCoordinates(p))
+                                                    .flatMap(Day10::expandPipeCoordinates)
                                                     .collect(Collectors.toSet());
 
         log.debug("Expanded pipe coordinates from (0,0) to ({},{}): {}", expandedRows, expandedColumns, pipeLocations);
-        log.debug("Expanded map:\n{}", printMap(pipeLocations, expandedRows, expandedColumns));
+        log.atDebug().setMessage("Expanded map:\n{}")
+           .addArgument(() -> Coordinate.printMap(pipeLocations, expandedRows, expandedColumns))
+           .log();
 
         // Find all outside spaces.
         Set<Coordinate> outsideSpaces = new HashSet<>();
@@ -380,18 +350,20 @@ public class Day10 {
             log.trace("Spaces to check: {}", spacesToCheck);
         }
 
-        log.debug("Spaces:\n{}", printMap(outsideSpaces, pipeLocations, expandedRows, expandedColumns));
+        log.atDebug().setMessage("Spaces:\n{}")
+           .addArgument(() -> printMap(outsideSpaces, pipeLocations, expandedRows, expandedColumns))
+           .log();
 
         // Enclosed space = total space - pipes - outside space
         int totalSpace = row.get() * column.get();
         int pipes = loopSegments.size();
         // Now count the outside spaces which fall on a multiple of 3
         int outsideSpace = //
-                (int) IntStream.rangeClosed(1, row.get())
-                               .flatMap(r -> IntStream.rangeClosed(1, column.get())
-                                                      .filter(c -> outsideSpaces.contains(new Coordinate(r * 3 - 1,
-                                                                                                         c * 3 - 1))))
-                               .count();
+                         (int) IntStream.rangeClosed(1, row.get())
+                                        .flatMap(r -> IntStream.rangeClosed(1, column.get())
+                                                               .filter(c -> outsideSpaces.contains(new Coordinate(r * 3 - 1,
+                                                                                                                  c * 3 - 1))))
+                                        .count();
         int enclosedSpace = totalSpace - pipes - outsideSpace;
         log.debug("Enclosed space = total space - pipes - outside space: {} = {} - {} - {}",
                   enclosedSpace,

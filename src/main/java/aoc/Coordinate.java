@@ -74,4 +74,52 @@ public final class Coordinate implements Comparable<Coordinate> {
         return result == 0 ? Integer.compare(this.column, o.column) : result;
     }
 
+    /**
+     * Create a printout of the map, using '#' as the marker and '.' for empty
+     * spaces.
+     * 
+     * @param coordinates
+     *            The set of coordinates to display.
+     * @param rows
+     *            The number of rows in the map.
+     * @param columns
+     *            The number of columns in the map.
+     * @return A string representation of the map.
+     */
+    public static String printMap(Set<Coordinate> coordinates, int rows, int columns) {
+        return printMap(coordinates, rows, columns, '#');
+    }
+
+    /**
+     * Create a printout of the map.
+     * 
+     * @param coordinates
+     *            The set of coordinates to display.
+     * @param rows
+     *            The number of rows in the map.
+     * @param columns
+     *            The number of columns in the map.
+     * @param presentMarker
+     *            The character to print at the given coordinates.
+     * @return A string representation of the map.
+     */
+    public static String printMap(Set<Coordinate> coordinates, int rows, int columns, char presentMarker) {
+
+        int location = columns;
+
+        StringBuilder printout = new StringBuilder(rows * columns + rows);
+
+        while (location < (rows + 1) * columns) {
+            printout.append(coordinates.contains(new Coordinate(location / columns, location % columns + 1)) ? presentMarker
+                                                                                                             : ".");
+
+            if (location % columns == columns - 1)
+                printout.append('\n');
+
+            location++;
+        }
+
+        return printout.toString();
+    }
+
 }
