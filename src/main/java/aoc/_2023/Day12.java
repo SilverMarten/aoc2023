@@ -1,12 +1,16 @@
 package aoc._2023;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.LoggerFactory;
 
 import aoc.FileUtils;
@@ -32,7 +36,7 @@ public class Day12 {
 
         log.info("Part 1:");
         log.setLevel(Level.DEBUG);
-        // log.setLevel(Level.TRACE);
+        log.setLevel(Level.TRACE);
 
         // Read the test file
         List<String> testLines = FileUtils.readFile(TEST_INPUT_TXT);
@@ -41,11 +45,13 @@ public class Day12 {
         log.info("The sum of the different arrangements of the springs is: {} (should be 21)", part1(testLines));
 
         log.setLevel(Level.INFO);
+//        log.setLevel(Level.DEBUG);
 
         // Read the real file
         List<String> lines = FileUtils.readFile(INPUT_TXT);
 
-         log.info("The sum of the different arrangements of the springs is: {} (should be less than 6,142,112)", part1(lines));
+        log.info("The sum of the different arrangements of the springs is: {} (should be less than 6,142,112)",
+                 part1(lines));
 
         // PART 2
         log.info("Part 2:");
@@ -55,7 +61,8 @@ public class Day12 {
 
         log.setLevel(Level.INFO);
 
-        log.info("The sum of the different arrangements of the springs is: {} (should be less than 2,059,101,273,163)", part2(lines));
+        log.info("The sum of the different arrangements of the springs is: {} (should be less than 2,059,101,273,163)",
+                 part2(lines));
     }
 
     /**
@@ -69,10 +76,13 @@ public class Day12 {
      */
     private static int part1(final List<String> lines) {
 
+        Map<String, List<Integer>> cache = new HashMap<>();
+
         return lines.stream()
                     .mapToInt(l -> countCombinations(l.split(" ")[0],
                                                      Stream.of(l.split(" ")[1].split(",")).map(Integer::parseInt)
-                                                           .collect(Collectors.toList())))
+                                                           .collect(Collectors.toList()),
+                                                     cache))
                     .sum();
     }
 
@@ -88,10 +98,12 @@ public class Day12 {
      *     information in the line of springs as well as the list of groups
      *     of damaged springs.
      */
-    private static int countCombinations(String springString, List<Integer> groups) {
+    private static int countCombinations(String springString, List<Integer> groups, Map<String, List<Integer>> cache) {
+
+        // Add an implicit . at the beginning and end
+        // springString = StringUtils.wrap(springString, '.');
 
         log.trace("{} {}", springString, groups);
-
         String[] springs = springString.split("");
 
         // The known number of broken springs
@@ -106,33 +118,35 @@ public class Day12 {
         int unknownSprings = ArrayUtils.indexesOf(springs, "?").cardinality();
 
         int totalCombinations = (int) Math.pow(2, unknownSprings);
-        log.trace("Broken: {}/{}\tOperational: {}/{}\tUnknown: {}\tCombinations: {}",
+        log.trace("Broken: {}/{}\tOperational: {}/{}\tUnknown: {}\tTotal springs: {}\tCombinations: {}",
                   visbleBrokenSprings, brokenSprings,
                   visibleOperationalSprings, operationalSprings,
-                  unknownSprings, totalCombinations);
+                  unknownSprings, springs.length, totalCombinations);
 
         // Try each possibility, count the working ones
-        AtomicInteger possibleCombinations = new AtomicInteger(totalCombinations);
-        /*  IntStream.range(0, totalCombinations).forEach(i -> {
+        AtomicInteger possibleCombinations = new AtomicInteger(0);
+        IntStream.range(0, totalCombinations).forEach(i -> {
             // Replace each ? with . or #, sequentially
             String combination = springString;
             while (combination.contains("?")) {
                 combination = combination.replaceFirst("\\?", i % 2 == 0 ? "." : "#");
                 i = i / 2;
             }
-        
+
             // Check if it matches
-            List<Integer> groupsToTest = Stream.of(combination.split("\\.+"))
-                                               .map(String::length)
-                                               .filter(n -> n > 0)
-                                               .collect(Collectors.toList());
+            String combinationToTest = combination;
+            List<Integer> groupsToTest = cache.computeIfAbsent(combinationToTest.replaceAll("\\.+", "."),
+                                                               k -> Stream.of(combinationToTest.split("\\.+"))
+                                                                          .map(String::length)
+                                                                          .filter(n -> n > 0)
+                                                                          .collect(Collectors.toList()));
             if (groups.equals(groupsToTest)) {
                 log.trace("{} {} works", combination, groupsToTest);
                 possibleCombinations.incrementAndGet();
             } else {
                 log.trace("{} {} invalid", combination, groupsToTest);
             }
-        });*/
+        });
 
         log.debug("{} {} - {} arrangement{}", springString, groups, possibleCombinations,
                   possibleCombinations.get() > 1 ? "s" : "");
@@ -152,6 +166,7 @@ public class Day12 {
      */
     private static long part2(final List<String> lines) {
 
+        Map<String, List<Integer>> cache = new HashMap<>();
         return lines.stream()
                     .mapToLong(l -> countCombinations(Collections.nCopies(5, l.split(" ")[0])
                                                                  .stream()
@@ -161,7 +176,8 @@ public class Day12 {
                                                                            .collect(Collectors.joining(","))
                                                                            .split(","))
                                                             .map(Integer::parseInt)
-                                                            .collect(Collectors.toList())))
+                                                            .collect(Collectors.toList()),
+                                                      cache))
                     .sum();
     }
 
