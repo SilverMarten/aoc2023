@@ -1,9 +1,14 @@
 package aoc;
 
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import org.apache.commons.lang3.ArrayUtils;
 
 /**
  * A coordinate of row and column.
@@ -72,6 +77,45 @@ public final class Coordinate implements Comparable<Coordinate> {
         int result = Integer.compare(this.row, o.row);
 
         return result == 0 ? Integer.compare(this.column, o.column) : result;
+    }
+
+    /**
+     * Map a list of strings into a set of coordinates of the locations of # in
+     * the strings.
+     * 
+     * @param lines
+     *            The lines to find and map the locations of #s.
+     * @return The set of coordinates of the locations of #s.
+     */
+    public static Set<Coordinate> mapCoordinates(List<String> lines) {
+        return mapCoordinates(lines, '#');
+    }
+
+    /**
+     * Map a list of strings into a set of coordinates of the locations of a
+     * given character in the strings.
+     * 
+     * @param lines
+     *            The lines to find and map the locations of the given
+     *            character.
+     * @param charToFind
+     *            The character to find in the strings and return the
+     *            coordinates of.
+     * @return The set of coordinates of the locations of the given character.
+     */
+    public static Set<Coordinate> mapCoordinates(List<String> lines, char charToFind) {
+        AtomicInteger row = new AtomicInteger(1);
+
+        Set<Coordinate> coordinates = new HashSet<>();
+        for (String line : lines) {
+            coordinates.addAll(ArrayUtils.indexesOf(line.toCharArray(), charToFind)
+                                         .stream()
+                                         .mapToObj(c -> new Coordinate(row.get(), c + 1))
+                                         .collect(Collectors.toSet()));
+            row.getAndIncrement();
+        }
+
+        return coordinates;
     }
 
     /**

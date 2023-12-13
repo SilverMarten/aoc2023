@@ -1,13 +1,10 @@
 package aoc._2023;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.LoggerFactory;
 
 import aoc.Coordinate;
@@ -39,14 +36,14 @@ public class Day13 {
         List<String> testLines = FileUtils.readFile(TEST_INPUT_TXT);
         log.trace("{}", testLines);
 
-        log.info("The sum of the note surraies is: {} (should be 405)", part1(testLines));
+        log.info("The sum of the note summaries is: {} (should be 405)", part1(testLines));
 
         log.setLevel(Level.INFO);
 
         // Read the real file
         List<String> lines = FileUtils.readFile(INPUT_TXT);
 
-        log.info("The sum of the note surraies is: {}", part1(lines));
+        log.info("The sum of the note summaries is: {} (should be less than 35668)", part1(lines));
 
         // PART 2
         log.info("Part 2:");
@@ -99,7 +96,7 @@ public class Day13 {
      * 
      * @param lines
      *            The lines representing a single block.
-     * @return The summary of the columns and 100 * the rows before the axis of
+     * @return The summary of the columns or 100 * the rows before the axis of
      *         reflection.
      */
     private static int summarizeBlock(final List<String> lines) {
@@ -107,34 +104,63 @@ public class Day13 {
         int rows = lines.size();
         int columns = lines.get(0).length();
 
-        Set<Coordinate> coordinates = mapCoordinates(lines);
+        Set<Coordinate> coordinates = Coordinate.mapCoordinates(lines);
 
-        log.atDebug().setMessage("Block:\n{}").addArgument(() -> Coordinate.printMap(coordinates, rows, columns)).log();
+        log.atDebug().setMessage("Block:\n{}\n{} rows, {} columns")
+           .addArgument(() -> Coordinate.printMap(coordinates, rows, columns))
+           .addArgument(rows)
+           .addArgument(columns)
+           .log();
 
-        return 0;
-    }
+        // Check the rows
+        for (int row = 2; row <= rows; row++) {
+            // It is symmetrical if the translated set of points on the shorter side of the line
+            // have a corresponding point on the larger side of the line.
+            int i = row;
+            Set<Coordinate> shortSide = coordinates.stream()
+                                                   .filter(c -> (c.getRow() < i && i <= rows / 2 + 1) ||
+                                                                (c.getRow() >= i && i > rows / 2 + 1))
+                                                   // Translate the coordinates and check if there is a match
+                                                   .map(c -> new Coordinate(c.getRow() + 2 * (i - c.getRow()) - 1, c.getColumn()))
+                                                   .collect(Collectors.toSet());
 
-    /**
-     * Map a list of strings into a set of coordinates of the locations of # in
-     * the strings.
-     * 
-     * @param lines
-     *            The lines to find and map the locations of #s.
-     * @return The set of coordinates of the locations of #s.
-     */
-    private static Set<Coordinate> mapCoordinates(List<String> lines) {
-        AtomicInteger row = new AtomicInteger(1);
+            log.atDebug().setMessage("Translated short side:\n{}\n{}")
+               .addArgument(shortSide)
+               .addArgument(() -> Coordinate.printMap(shortSide, rows, columns))
+               .log();
 
-        Set<Coordinate> coordinates = new HashSet<>();
-        for (String line : lines) {
-            coordinates.addAll(ArrayUtils.indexesOf(line.toCharArray(), '#')
-                                         .stream()
-                                         .mapToObj(c -> new Coordinate(row.get(), c + 1))
-                                         .collect(Collectors.toSet()));
-            row.getAndIncrement();
+            boolean match = shortSide.stream().allMatch(coordinates::contains);
+            if (match) {
+                log.debug("It's a match at row {}!", row);
+                return (row - 1) * 100;
+            }
         }
 
-        return coordinates;
+        // Check the columns
+        for (int column = 2; column <= columns; column++) {
+            // It is symmetrical if the translated set of points on the shorter side of the line
+            // have a corresponding point on the larger side of the line.
+            int i = column;
+            Set<Coordinate> shortSide = coordinates.stream()
+                                                   .filter(c -> (c.getColumn() < i && i <= columns / 2 + 1) ||
+                                                                (c.getColumn() >= i && i > columns / 2 + 1))
+                                                   // Translate the coordinates and check if there is a match
+                                                   .map(c -> new Coordinate(c.getRow(), c.getColumn() + 2 * (i - c.getColumn()) - 1))
+                                                   .collect(Collectors.toSet());
+
+            log.atDebug().setMessage("Translated short side:\n{}\n{}")
+               .addArgument(shortSide)
+               .addArgument(() -> Coordinate.printMap(shortSide, rows, columns))
+               .log();
+
+            boolean match = shortSide.stream().allMatch(coordinates::contains);
+            if (match) {
+                log.debug("It's a match at column {}!", column);
+                return column - 1;
+            }
+        }
+
+        return 0;
     }
 
 }
