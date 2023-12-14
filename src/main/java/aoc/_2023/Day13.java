@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.Range;
 import org.slf4j.LoggerFactory;
 
 import aoc.Coordinate;
@@ -31,6 +32,7 @@ public class Day13 {
 
         log.info("Part 1:");
         log.setLevel(Level.DEBUG);
+        // log.setLevel(Level.TRACE);
 
         // Read the test file
         List<String> testLines = FileUtils.readFile(TEST_INPUT_TXT);
@@ -61,9 +63,9 @@ public class Day13 {
      * number do you get after summarizing all of your notes?
      * 
      * @param lines
-     *            The lines containing blocks of notes to summarize.
+     *     The lines containing blocks of notes to summarize.
      * @return The sum of the columns and 100 * the rows before the axis of
-     *         reflection.
+     *     reflection.
      */
     private static int part1(final List<String> lines) {
 
@@ -95,9 +97,9 @@ public class Day13 {
      * number of columns to its left, or 100 * the number of rows above it.
      * 
      * @param lines
-     *            The lines representing a single block.
+     *     The lines representing a single block.
      * @return The summary of the columns or 100 * the rows before the axis of
-     *         reflection.
+     *     reflection.
      */
     private static int summarizeBlock(final List<String> lines) {
 
@@ -114,23 +116,35 @@ public class Day13 {
 
         // Check the rows
         for (int row = 2; row <= rows; row++) {
-            // It is symmetrical if the translated set of points on the shorter side of the line
+            // It is symmetrical if the translated set of points on the shorter side of the
+            // line
             // have a corresponding point on the larger side of the line.
             int i = row;
+
+            Range<Integer> shortSideRange = i <= rows / 2 + 1 ? Range.of(1, i - 1) : Range.of(i, rows);
+            Range<Integer> correspondingRange = i <= rows / 2 + 1 ? Range.of(i, (i - 1) * 2)
+                    : Range.of(i - (rows - i) - 1, i - 1);
+
+            log.trace("Comparing {} to {}", shortSideRange, correspondingRange);
+
             Set<Coordinate> shortSide = coordinates.stream()
-                                                   .filter(c -> (c.getRow() < i && i <= rows / 2 + 1) ||
-                                                                (c.getRow() >= i && i > rows / 2 + 1))
+                                                   .filter(c -> shortSideRange.contains(c.getRow()))
                                                    // Translate the coordinates and check if there is a match
-                                                   .map(c -> new Coordinate(c.getRow() + 2 * (i - c.getRow()) - 1, c.getColumn()))
+                                                   .map(c -> new Coordinate(c.getRow() + 2 * (i - c.getRow()) - 1,
+                                                                            c.getColumn()))
                                                    .collect(Collectors.toSet());
 
-            log.atDebug().setMessage("Translated short side:\n{}\n{}")
+            log.atTrace().setMessage("Translated short side:\n{}\n{}")
                .addArgument(shortSide)
                .addArgument(() -> Coordinate.printMap(shortSide, rows, columns))
                .log();
 
-            boolean match = shortSide.stream().allMatch(coordinates::contains);
-            if (match) {
+            // Find the corresponding rows in the rest of the map
+            Set<Coordinate> correspondingPoints = coordinates.stream()
+                                                             .filter(c -> correspondingRange.contains(c.getRow()))
+                                                             .collect(Collectors.toSet());
+
+            if (correspondingPoints.equals(shortSide)) {
                 log.debug("It's a match at row {}!", row);
                 return (row - 1) * 100;
             }
@@ -138,23 +152,35 @@ public class Day13 {
 
         // Check the columns
         for (int column = 2; column <= columns; column++) {
-            // It is symmetrical if the translated set of points on the shorter side of the line
-            // have a corresponding point on the larger side of the line.
+            // It is symmetrical if the translated set of points on the shorter side of the
+            // line have a corresponding point on the larger side of the line.
             int i = column;
+
+            Range<Integer> shortSideRange = i <= columns / 2 + 1 ? Range.of(1, i - 1) : Range.of(i, columns);
+            Range<Integer> correspondingRange = i <= columns / 2 + 1 ? Range.of(i, (i - 1) * 2)
+                    : Range.of(i - (columns - i) - 1, i - 1);
+
+            log.trace("Comparing {} to {}", shortSideRange, correspondingRange);
+
             Set<Coordinate> shortSide = coordinates.stream()
-                                                   .filter(c -> (c.getColumn() < i && i <= columns / 2 + 1) ||
-                                                                (c.getColumn() >= i && i > columns / 2 + 1))
+                                                   .filter(c -> shortSideRange.contains(c.getColumn()))
                                                    // Translate the coordinates and check if there is a match
-                                                   .map(c -> new Coordinate(c.getRow(), c.getColumn() + 2 * (i - c.getColumn()) - 1))
+                                                   .map(c -> new Coordinate(c.getRow(),
+                                                                            c.getColumn() + 2 * (i - c.getColumn())
+                                                                                        - 1))
                                                    .collect(Collectors.toSet());
 
-            log.atDebug().setMessage("Translated short side:\n{}\n{}")
+            log.atTrace().setMessage("Translated short side:\n{}\n{}")
                .addArgument(shortSide)
                .addArgument(() -> Coordinate.printMap(shortSide, rows, columns))
                .log();
 
-            boolean match = shortSide.stream().allMatch(coordinates::contains);
-            if (match) {
+            // Find the corresponding rows in the rest of the map
+            Set<Coordinate> correspondingPoints = coordinates.stream()
+                                                             .filter(c -> correspondingRange.contains(c.getColumn()))
+                                                             .collect(Collectors.toSet());
+
+            if (correspondingPoints.equals(shortSide)) {
                 log.debug("It's a match at column {}!", column);
                 return column - 1;
             }
