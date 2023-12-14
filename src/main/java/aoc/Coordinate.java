@@ -131,23 +131,24 @@ public final class Coordinate implements Comparable<Coordinate> {
      * @return A string representation of the map.
      */
     public static String printMap(Set<Coordinate> coordinates, int rows, int columns) {
-        return printMap(coordinates, rows, columns, '#');
+        return printMap(rows, columns, coordinates, '#');
     }
 
     /**
      * Create a printout of the map.
      * 
-     * @param coordinates
-     *            The set of coordinates to display.
      * @param rows
      *            The number of rows in the map.
      * @param columns
      *            The number of columns in the map.
+     * @param coordinates
+     *            The set of coordinates to display.
      * @param presentMarker
      *            The character to print at the given coordinates.
+     * 
      * @return A string representation of the map.
      */
-    public static String printMap(Set<Coordinate> coordinates, int rows, int columns, char presentMarker) {
+    public static String printMap(int rows, int columns, Set<Coordinate> coordinates, char presentMarker) {
 
         int location = columns;
 
@@ -166,4 +167,48 @@ public final class Coordinate implements Comparable<Coordinate> {
         return printout.toString();
     }
 
+    /**
+     * Create a printout of the map.
+     * 
+     * @param rows
+     *            The number of rows in the map.
+     * @param columns
+     *            The number of columns in the map.
+     * @param firstCoordinates
+     *            The first set of coordinates to display.
+     * @param firstMarker
+     *            The character to print at the given coordinates in the first
+     *            set.
+     * @param secondCoordinates
+     *            The second set of coordinates to display.
+     * @param secondMarker
+     *            The character to print at the given coordinates in the second
+     *            set.
+     * @return A string representation of the map.
+     */
+    public static String printMap(int rows, int columns,
+                                  Set<Coordinate> firstCoordinates, char firstMarker,
+                                  Set<Coordinate> secondCoordinates, char secondMarker) {
+
+        int location = columns;
+
+        StringBuilder printout = new StringBuilder(rows * columns + rows);
+
+        while (location < (rows + 1) * columns) {
+            Coordinate coordinate = new Coordinate(location / columns, location % columns + 1);
+            char marker = '.';
+            if (firstCoordinates.contains(coordinate))
+                marker = firstMarker;
+            else if (secondCoordinates.contains(coordinate))
+                marker = secondMarker;
+            printout.append(marker);
+
+            if (location % columns == columns - 1)
+                printout.append('\n');
+
+            location++;
+        }
+
+        return printout.toString();
+    }
 }
