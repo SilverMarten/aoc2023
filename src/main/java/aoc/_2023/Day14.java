@@ -159,7 +159,25 @@ public class Day14 {
 
         Set<Coordinate> nextRoundRocks = roundRocks;
         Map<Set<Coordinate>, Set<Coordinate>> cacheMap = new HashMap<>();
+        int loopStart = 0;
+        int loopLength = 0;
+        Set<Coordinate> loopStartRocks = null;
         for (int i = 1; i <= 1_000_000_000; i++) {
+
+            // Watch for a loop
+            if (loopStartRocks != null && loopStartRocks.equals(nextRoundRocks)) {
+                loopLength = i - loopStart;
+                log.info("Loop is {} cycles.", loopLength);
+
+                // Skip to the end (some whole multiple of the loop length)
+                i += ((1_000_000_000 - i) / loopLength) * loopLength;
+                log.info("Skipping to {}.", i);
+            } else if (loopStartRocks == null && cacheMap.containsKey(nextRoundRocks)) {
+                log.info("Loop starts after {} cycles.", i);
+                loopStart = i;
+                loopStartRocks = nextRoundRocks;
+            }
+
             nextRoundRocks = cacheMap.computeIfAbsent(nextRoundRocks, n -> spinCycle(rows, columns, n, squareRocks));
 
             boolean plural = i > 1;
@@ -170,8 +188,9 @@ public class Day14 {
                    .setMessage("After {} cycle{}:\n{}")
                    .addArgument(i)
                    .addArgument(() -> plural ? "s" : "")
-                   .addArgument(() -> Coordinate.printMap(rows, columns, squareRocks, SQUARE_ROCK_CHAR, printRoundRocks,
-                                                          ROUND_ROCK_CHAR))
+                   .addArgument(() -> Coordinate.printMap(rows, columns,
+                                                          squareRocks, SQUARE_ROCK_CHAR,
+                                                          printRoundRocks, ROUND_ROCK_CHAR))
                    .log();
             }
         }
