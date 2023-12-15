@@ -16,10 +16,12 @@ import org.apache.commons.lang3.ArrayUtils;
 public final class Coordinate implements Comparable<Coordinate> {
     private final int row;
     private final int column;
+    private final int hashCode;
 
     public Coordinate(int row, int column) {
         this.row = row;
         this.column = column;
+        this.hashCode = computeHashCode();
     }
 
     public int getRow() {
@@ -42,8 +44,21 @@ public final class Coordinate implements Comparable<Coordinate> {
                         .collect(Collectors.toSet());
     }
 
+    /**
+     * Return the pre-generated hashCode for this Coordinate.
+     */
     @Override
     public int hashCode() {
+        return this.hashCode;
+    }
+
+    /**
+     * Compute the hashCode for this Coordinate so it can be cached by the
+     * constructor.
+     * 
+     * @return the computed hashCode for this Coordinate.
+     */
+    private int computeHashCode() {
         final int prime = 31;
         int result = 1;
         result = prime * result + column;
@@ -84,7 +99,7 @@ public final class Coordinate implements Comparable<Coordinate> {
      * the strings.
      * 
      * @param lines
-     *            The lines to find and map the locations of #s.
+     *     The lines to find and map the locations of #s.
      * @return The set of coordinates of the locations of #s.
      */
     public static Set<Coordinate> mapCoordinates(List<String> lines) {
@@ -96,11 +111,11 @@ public final class Coordinate implements Comparable<Coordinate> {
      * given character in the strings.
      * 
      * @param lines
-     *            The lines to find and map the locations of the given
-     *            character.
+     *     The lines to find and map the locations of the given
+     *     character.
      * @param charToFind
-     *            The character to find in the strings and return the
-     *            coordinates of.
+     *     The character to find in the strings and return the
+     *     coordinates of.
      * @return The set of coordinates of the locations of the given character.
      */
     public static Set<Coordinate> mapCoordinates(List<String> lines, char charToFind) {
@@ -123,11 +138,11 @@ public final class Coordinate implements Comparable<Coordinate> {
      * spaces.
      * 
      * @param coordinates
-     *            The set of coordinates to display.
+     *     The set of coordinates to display.
      * @param rows
-     *            The number of rows in the map.
+     *     The number of rows in the map.
      * @param columns
-     *            The number of columns in the map.
+     *     The number of columns in the map.
      * @return A string representation of the map.
      */
     public static String printMap(Set<Coordinate> coordinates, int rows, int columns) {
@@ -138,13 +153,13 @@ public final class Coordinate implements Comparable<Coordinate> {
      * Create a printout of the map.
      * 
      * @param rows
-     *            The number of rows in the map.
+     *     The number of rows in the map.
      * @param columns
-     *            The number of columns in the map.
+     *     The number of columns in the map.
      * @param coordinates
-     *            The set of coordinates to display.
+     *     The set of coordinates to display.
      * @param presentMarker
-     *            The character to print at the given coordinates.
+     *     The character to print at the given coordinates.
      * 
      * @return A string representation of the map.
      */
@@ -155,8 +170,9 @@ public final class Coordinate implements Comparable<Coordinate> {
         StringBuilder printout = new StringBuilder(rows * columns + rows);
 
         while (location < (rows + 1) * columns) {
-            printout.append(coordinates.contains(new Coordinate(location / columns, location % columns + 1)) ? presentMarker
-                                                                                                             : ".");
+            printout.append(coordinates.contains(new Coordinate(location / columns, location % columns + 1))
+                    ? presentMarker
+                    : ".");
 
             if (location % columns == columns - 1)
                 printout.append('\n');
@@ -171,19 +187,19 @@ public final class Coordinate implements Comparable<Coordinate> {
      * Create a printout of the map.
      * 
      * @param rows
-     *            The number of rows in the map.
+     *     The number of rows in the map.
      * @param columns
-     *            The number of columns in the map.
+     *     The number of columns in the map.
      * @param firstCoordinates
-     *            The first set of coordinates to display.
+     *     The first set of coordinates to display.
      * @param firstMarker
-     *            The character to print at the given coordinates in the first
-     *            set.
+     *     The character to print at the given coordinates in the first
+     *     set.
      * @param secondCoordinates
-     *            The second set of coordinates to display.
+     *     The second set of coordinates to display.
      * @param secondMarker
-     *            The character to print at the given coordinates in the second
-     *            set.
+     *     The character to print at the given coordinates in the second
+     *     set.
      * @return A string representation of the map.
      */
     public static String printMap(int rows, int columns,
