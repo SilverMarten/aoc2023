@@ -1,8 +1,10 @@
 package aoc._2023;
 
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -58,12 +60,13 @@ public class Day14 {
         // PART 2
         log.info("Part 2:");
         log.setLevel(Level.DEBUG);
+        // log.setLevel(Level.TRACE);
 
-        log.info("{}", part2(testLines));
+        log.info("The total load on the north support beam is: {} (should be 64)", part2(testLines));
 
         log.setLevel(Level.INFO);
 
-        log.info("{}", part2(lines));
+        log.info("The total load on the north support beam is: {}", part2(lines));
     }
 
     /**
@@ -71,8 +74,8 @@ public class Day14 {
      * what is the total load on the north support beams?
      * 
      * @param lines
-     *            The lines representing the positions of the rocks on the
-     *            platform.
+     *     The lines representing the positions of the rocks on the
+     *     platform.
      * @return The total load on the north support beam.
      */
     private static int part1(final List<String> lines) {
@@ -92,7 +95,8 @@ public class Day14 {
         // For each column, count the round rocks between the square rocks
         return IntStream.rangeClosed(1, columns).map(column -> {
             AtomicInteger lastRow = new AtomicInteger(0);
-            Set<Coordinate> roundRocksInColumn = roundRocks.stream().filter(r -> r.getColumn() == column).collect(Collectors.toSet());
+            Set<Coordinate> roundRocksInColumn = roundRocks.stream().filter(r -> r.getColumn() == column)
+                                                           .collect(Collectors.toSet());
 
             int columnSum = squareRocks.stream()
                                        .filter(r -> r.getColumn() == column)
@@ -100,13 +104,15 @@ public class Day14 {
                                        .sorted()
                                        .map(row -> {
                                            int rocks = (int) IterableUtils.countMatches(roundRocksInColumn,
-                                                                                        r -> Range.of(lastRow.get() + 1, row - 1)
+                                                                                        r -> Range.of(lastRow.get() + 1,
+                                                                                                      row - 1)
                                                                                                   .contains(r.getRow()));
                                            int sum = 0;
                                            if (rocks != 0) {
                                                int maxValue = rows - lastRow.get();
                                                sum = (int) (rocks * maxValue - rocks * (rocks - 1) / 2.);
-                                               log.trace("The sum from {} to {} is: {}", maxValue, maxValue - rocks + 1, sum);
+                                               log.trace("The sum from {} to {} is: {}", maxValue, maxValue - rocks + 1,
+                                                         sum);
                                            }
                                            lastRow.set(row);
                                            return sum;
@@ -123,10 +129,10 @@ public class Day14 {
      * load on the north support beams?
      * 
      * @param lines
-     *            The lines representing the positions of the rocks on the
-     *            platform.
+     *     The lines representing the positions of the rocks on the
+     *     platform.
      * @return The total load on the north support beam after 1,000,000,000 spin
-     *         cycles.
+     *     cycles.
      */
     private static int part2(final List<String> lines) {
 
@@ -147,21 +153,35 @@ public class Day14 {
 
         log.atDebug()
            .setMessage("Start:\n{}")
-           .addArgument(() -> Coordinate.printMap(rows, columns, squareRocks, SQUARE_ROCK_CHAR, roundRocks, ROUND_ROCK_CHAR))
+           .addArgument(() -> Coordinate.printMap(rows, columns, squareRocks, SQUARE_ROCK_CHAR, roundRocks,
+                                                  ROUND_ROCK_CHAR))
            .log();
 
-        IntStream.rangeClosed(1, 3).forEach(i -> {
-            Set<Coordinate> nextRoundRocks = spinCycle(rows, columns, roundRocks, squareRocks);
+        Set<Coordinate> nextRoundRocks = roundRocks;
+        Map<Set<Coordinate>, Set<Coordinate>> cacheMap = new HashMap<>();
+        for (int i = 1; i <= 1_000_000_000; i++) {
+            nextRoundRocks = cacheMap.computeIfAbsent(nextRoundRocks, n -> spinCycle(rows, columns, n, squareRocks));
 
-            log.atDebug()
-               .setMessage("After {} cycle{}:\n{}")
-               .addArgument(i)
-               .addArgument(() -> i > 1 ? "s" : "")
-               .addArgument(() -> Coordinate.printMap(rows, columns, squareRocks, SQUARE_ROCK_CHAR, nextRoundRocks, ROUND_ROCK_CHAR))
-               .log();
-        });
+            boolean plural = i > 1;
+            Set<Coordinate> printRoundRocks = nextRoundRocks;
+            if (i < 10 || Math.log10(i) % 1 == 0) {
+                log.info("After {} cycle{} cache size is:\n{}", i, plural ? "s" : "", cacheMap.size());
+                log.atDebug()
+                   .setMessage("After {} cycle{}:\n{}")
+                   .addArgument(i)
+                   .addArgument(() -> plural ? "s" : "")
+                   .addArgument(() -> Coordinate.printMap(rows, columns, squareRocks, SQUARE_ROCK_CHAR, printRoundRocks,
+                                                          ROUND_ROCK_CHAR))
+                   .log();
+            }
+        }
 
-        return -1;
+        // Compute the load on the north support beam
+        return computeLoad(nextRoundRocks, rows);
+    }
+
+    private static int computeLoad(Set<Coordinate> nextRoundRocks, int rows) {
+        return nextRoundRocks.stream().mapToInt(Coordinate::getRow).map(r -> rows - r + 1).sum();
     }
 
     /**
@@ -169,21 +189,22 @@ public class Day14 {
      * east.
      * 
      * @param rows
-     *            The number of rows in the map.
+     *     The number of rows in the map.
      * @param columns
-     *            The number of columns in the map.
+     *     The number of columns in the map.
      * @param roundRocks
-     *            The positions of the round rocks.
+     *     The positions of the round rocks.
      * @param squareRocks
-     *            The positions of the square rocks.
+     *     The positions of the square rocks.
      * @return The positions of the round rocks after translation.
      */
-    private static Set<Coordinate> spinCycle(int rows, int columns, Set<Coordinate> roundRocks, Set<Coordinate> squareRocks) {
+    private static Set<Coordinate> spinCycle(int rows, int columns, Set<Coordinate> roundRocks,
+                                             Set<Coordinate> squareRocks) {
         Set<Coordinate> rocksLeftToTranslate = new HashSet<>(roundRocks);
         Set<Coordinate> translatedRocks = new HashSet<>();
 
         // Translate all rocks north
-        // Fill each row with the next round rock in the column 
+        // Fill each row with the next round rock in the column
         for (int row = 1; row <= rows; row++) {
             for (int column = 1; column <= columns; column++) {
                 Coordinate coordinateToCheck = new Coordinate(row, column);
@@ -191,14 +212,21 @@ public class Day14 {
                 if (squareRocks.contains(coordinateToCheck))
                     continue;
 
+                // If there's already a round stone here, copy it to the translated set and
+                // continue
+                if (rocksLeftToTranslate.contains(coordinateToCheck)) {
+                    rocksLeftToTranslate.remove(coordinateToCheck);
+                    translatedRocks.add(coordinateToCheck);
+                    continue;
+                }
+
                 // Look down the column for the next round rock, stop at square rocks
                 int columnToCheck = column;
                 int rowToCheck = row;
                 int nextSquareRockRow = squareRocks.stream().filter(r -> r.getColumn() == columnToCheck &&
                                                                          r.getRow() >= rowToCheck)
                                                    .mapToInt(Coordinate::getRow)
-                                                   .sorted()
-                                                   .findFirst()
+                                                   .min()
                                                    .getAsInt();
                 Range<Integer> rowsToCheck = Range.of(row, nextSquareRockRow - 1);
                 Optional<Coordinate> rock = rocksLeftToTranslate.stream()
@@ -212,11 +240,20 @@ public class Day14 {
                 });
             }
         }
+        if (!rocksLeftToTranslate.isEmpty())
+            log.error("Didn't translate all rocks north! Remaining: {}", rocksLeftToTranslate);
+
+        log.atTrace()
+           .setMessage("After north:\n{}")
+           .addArgument(() -> Coordinate.printMap(rows, columns,
+                                                  squareRocks, SQUARE_ROCK_CHAR,
+                                                  translatedRocks, ROUND_ROCK_CHAR))
+           .log();
 
         // Translate all rocks west
         rocksLeftToTranslate.addAll(translatedRocks);
         translatedRocks.clear();
-        // Fill each column with the next round rock in the row 
+        // Fill each column with the next round rock in the row
         for (int column = 1; column <= columns; column++) {
             for (int row = 1; row <= rows; row++) {
                 Coordinate coordinateToCheck = new Coordinate(row, column);
@@ -224,14 +261,21 @@ public class Day14 {
                 if (squareRocks.contains(coordinateToCheck))
                     continue;
 
+                // If there's already a round stone here, copy it to the translated set and
+                // continue
+                if (rocksLeftToTranslate.contains(coordinateToCheck)) {
+                    rocksLeftToTranslate.remove(coordinateToCheck);
+                    translatedRocks.add(coordinateToCheck);
+                    continue;
+                }
+
                 // Look down the row for the next round rock, stop at square rocks
                 int columnToCheck = column;
                 int rowToCheck = row;
                 int nextSquareRockColumn = squareRocks.stream().filter(r -> r.getColumn() >= columnToCheck &&
                                                                             r.getRow() == rowToCheck)
                                                       .mapToInt(Coordinate::getColumn)
-                                                      .sorted()
-                                                      .findFirst()
+                                                      .min()
                                                       .getAsInt();
                 Range<Integer> columnsToCheck = Range.of(column, nextSquareRockColumn - 1);
                 Optional<Coordinate> rock = rocksLeftToTranslate.stream()
@@ -245,6 +289,114 @@ public class Day14 {
                 });
             }
         }
+        if (!rocksLeftToTranslate.isEmpty())
+            log.error("Didn't translate all rocks west! Remaining: {}", rocksLeftToTranslate);
+
+        log.atTrace()
+           .setMessage("After west:\n{}")
+           .addArgument(() -> Coordinate.printMap(rows, columns,
+                                                  squareRocks, SQUARE_ROCK_CHAR,
+                                                  translatedRocks, ROUND_ROCK_CHAR))
+           .log();
+
+        // Translate all rocks south
+        rocksLeftToTranslate.addAll(translatedRocks);
+        translatedRocks.clear();
+        // Fill each row with the next round rock in the column
+        for (int row = rows; row >= 1; row--) {
+            for (int column = 1; column <= columns; column++) {
+                Coordinate coordinateToCheck = new Coordinate(row, column);
+                // If there's already a square stone here, continue
+                if (squareRocks.contains(coordinateToCheck))
+                    continue;
+
+                // If there's already a round stone here, copy it to the translated set and
+                // continue
+                if (rocksLeftToTranslate.contains(coordinateToCheck)) {
+                    rocksLeftToTranslate.remove(coordinateToCheck);
+                    translatedRocks.add(coordinateToCheck);
+                    continue;
+                }
+
+                // Look up the column for the next round rock, stop at square rocks
+                int columnToCheck = column;
+                int rowToCheck = row;
+                int nextSquareRockRow = squareRocks.stream().filter(r -> r.getColumn() == columnToCheck &&
+                                                                         r.getRow() <= rowToCheck)
+                                                   .mapToInt(Coordinate::getRow)
+                                                   .max()
+                                                   .getAsInt();
+                Range<Integer> rowsToCheck = Range.of(row, nextSquareRockRow + 1);
+                Optional<Coordinate> rock = rocksLeftToTranslate.stream()
+                                                                .filter(r -> r.getColumn() == columnToCheck &&
+                                                                             rowsToCheck.contains(r.getRow()))
+                                                                .sorted(Comparator.comparing(Coordinate::getRow))
+                                                                .findFirst();
+                rock.ifPresent(r -> {
+                    rocksLeftToTranslate.remove(r);
+                    translatedRocks.add(coordinateToCheck);
+                });
+            }
+        }
+
+        if (!rocksLeftToTranslate.isEmpty())
+            log.error("Didn't translate all rocks south! Remaining: {}", rocksLeftToTranslate);
+
+        log.atTrace()
+           .setMessage("After south:\n{}")
+           .addArgument(() -> Coordinate.printMap(rows, columns,
+                                                  squareRocks, SQUARE_ROCK_CHAR,
+                                                  translatedRocks, ROUND_ROCK_CHAR))
+           .log();
+
+        // Translate all rocks east
+        rocksLeftToTranslate.addAll(translatedRocks);
+        translatedRocks.clear();
+        // Fill each column with the next round rock in the row
+        for (int column = columns; column >= 1; column--) {
+            for (int row = 1; row <= rows; row++) {
+                Coordinate coordinateToCheck = new Coordinate(row, column);
+                // If there's already a square stone here, continue
+                if (squareRocks.contains(coordinateToCheck))
+                    continue;
+
+                // If there's already a round stone here, copy it to the translated set and
+                // continue
+                if (rocksLeftToTranslate.contains(coordinateToCheck)) {
+                    rocksLeftToTranslate.remove(coordinateToCheck);
+                    translatedRocks.add(coordinateToCheck);
+                    continue;
+                }
+
+                // Look down the row for the next round rock, stop at square rocks
+                int columnToCheck = column;
+                int rowToCheck = row;
+                int nextSquareRockColumn = squareRocks.stream().filter(r -> r.getColumn() <= columnToCheck &&
+                                                                            r.getRow() == rowToCheck)
+                                                      .mapToInt(Coordinate::getColumn)
+                                                      .max()
+                                                      .getAsInt();
+                Range<Integer> columnsToCheck = Range.of(column, nextSquareRockColumn + 1);
+                Optional<Coordinate> rock = rocksLeftToTranslate.stream()
+                                                                .filter(r -> r.getRow() == rowToCheck &&
+                                                                             columnsToCheck.contains(r.getColumn()))
+                                                                .sorted(Comparator.comparing(Coordinate::getColumn))
+                                                                .findFirst();
+                rock.ifPresent(r -> {
+                    rocksLeftToTranslate.remove(r);
+                    translatedRocks.add(coordinateToCheck);
+                });
+            }
+        }
+        if (!rocksLeftToTranslate.isEmpty())
+            log.error("Didn't translate all rocks east! Remaining: {}", rocksLeftToTranslate);
+
+        log.atTrace()
+           .setMessage("After east:\n{}")
+           .addArgument(() -> Coordinate.printMap(rows, columns,
+                                                  squareRocks, SQUARE_ROCK_CHAR,
+                                                  translatedRocks, ROUND_ROCK_CHAR))
+           .log();
 
         return translatedRocks;
     }
