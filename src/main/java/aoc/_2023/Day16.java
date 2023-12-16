@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.apache.commons.collections4.SetUtils;
 import org.slf4j.LoggerFactory;
 
 import aoc.Coordinate;
@@ -52,7 +53,7 @@ public class Day16 {
 
         log.info("There are {} energized tiles. (should be 46)", part1(testLines));
 
-        // log.setLevel(Level.INFO);
+        log.setLevel(Level.INFO);
 
         // Read the real file
         List<String> lines = FileUtils.readFile(INPUT_TXT);
@@ -63,11 +64,11 @@ public class Day16 {
         log.info("Part 2:");
         log.setLevel(Level.DEBUG);
 
-        log.info("{}", part2(testLines));
+        log.info("There are {} energized tiles. (should be 51)", part2(testLines));
 
         log.setLevel(Level.INFO);
 
-        log.info("{}", part2(lines));
+        log.info("There are {} energized tiles. (should be higher than 7496)", part2(lines));
     }
 
     /**
@@ -133,6 +134,139 @@ public class Day16 {
            .log();
 
         return energizedTileSet.size();
+    }
+
+    /**
+     * Find the initial beam configuration that energizes the largest number of
+     * tiles; how many tiles are energized in that configuration?
+     * 
+     * @param lines The lines of the grid containing mirrors and splitters.
+     * @return The maximum number of energized tiles.
+     */
+    private static int part2(final List<String> lines) {
+
+        int rows = lines.size();
+        int columns = lines.get(0).length();
+
+        // Map out the mirrors
+        Map<Coordinate, Character> mirrorMap = Coordinate.mapCoordinates(lines);
+
+        log.atDebug()
+           .setMessage("Mirrors:\n{}")
+           .addArgument(() -> Coordinate.printMap(rows, columns, mirrorMap))
+           .log();
+
+        // Add a frame to stop the light
+        IntStream.rangeClosed(1, columns).forEach(c -> {
+            mirrorMap.put(new Coordinate(0, c), '#');
+            mirrorMap.put(new Coordinate(rows + 1, c), '#');
+        });
+        IntStream.rangeClosed(1, rows).forEach(r -> {
+            mirrorMap.put(new Coordinate(r, 0), '#');
+            mirrorMap.put(new Coordinate(r, columns + 1), '#');
+        });
+
+        // Try all the start positions and directions
+
+        Set<Entry<Coordinate, Direction>> energizedTiles = SetUtils.emptySet();
+        Set<Coordinate> energizedTileSet = SetUtils.emptySet();
+        int energizedTileCount = 0;
+
+        Set<Entry<Coordinate, Direction>> maxEnergizedTiles = new HashSet<>();
+
+        // Left side, going right
+        for (int row = 1; row <= rows; row++) {
+            Direction currentDirection = Direction.RIGHT;
+            Coordinate startPosition = new Coordinate(row, 1);
+            energizedTiles = new HashSet<>();
+
+            // Start following the path of the light
+            followTheLight(startPosition, currentDirection, mirrorMap, energizedTiles);
+
+            // Count the energized tiles
+            energizedTileSet = energizedTiles.stream().map(Entry::getKey).collect(Collectors.toSet());
+
+            if (energizedTileCount < energizedTileSet.size()) {
+                energizedTileCount = energizedTileSet.size();
+                maxEnergizedTiles = energizedTiles;
+            }
+        }
+        // Right side, going left
+        for (int row = 1; row <= rows; row++) {
+            Direction currentDirection = Direction.LEFT;
+            Coordinate startPosition = new Coordinate(row, columns);
+            energizedTiles = new HashSet<>();
+
+            // Start following the path of the light
+            followTheLight(startPosition, currentDirection, mirrorMap, energizedTiles);
+
+            // Count the energized tiles
+            energizedTileSet = energizedTiles.stream().map(Entry::getKey).collect(Collectors.toSet());
+
+            if (energizedTileCount < energizedTileSet.size()) {
+                energizedTileCount = energizedTileSet.size();
+                maxEnergizedTiles = energizedTiles;
+            }
+        }
+        // Top side, going down
+        for (int column = 1; column <= columns; column++) {
+            Direction currentDirection = Direction.DOWN;
+            Coordinate startPosition = new Coordinate(1, column);
+            energizedTiles = new HashSet<>();
+
+            // Start following the path of the light
+            followTheLight(startPosition, currentDirection, mirrorMap, energizedTiles);
+
+            // Count the energized tiles
+            energizedTileSet = energizedTiles.stream().map(Entry::getKey).collect(Collectors.toSet());
+
+            if (energizedTileCount < energizedTileSet.size()) {
+                energizedTileCount = energizedTileSet.size();
+                maxEnergizedTiles = energizedTiles;
+            }
+        }
+        // Bottom side, going up
+        for (int column = 1; column <= columns; column++) {
+            Direction currentDirection = Direction.UP;
+            Coordinate startPosition = new Coordinate(rows, column);
+            energizedTiles = new HashSet<>();
+
+            // Start following the path of the light
+            followTheLight(startPosition, currentDirection, mirrorMap, energizedTiles);
+
+            // Count the energized tiles
+            energizedTileSet = energizedTiles.stream().map(Entry::getKey).collect(Collectors.toSet());
+
+            if (energizedTileCount < energizedTileSet.size()) {
+                energizedTileCount = energizedTileSet.size();
+                maxEnergizedTiles = energizedTiles;
+            }
+        }
+
+        // Display the path
+        maxEnergizedTiles.stream().forEach(e -> {
+            char mappedChar = mirrorMap.getOrDefault(e.getKey(), '.');
+            if (mappedChar == '.')
+                mirrorMap.put(e.getKey(), e.getValue().symbol);
+            else if ("<>^v".indexOf(mappedChar) >= 0)
+                mirrorMap.put(e.getKey(), '2');
+            else if ("   234".indexOf(mappedChar) >= 0)
+                mirrorMap.put(e.getKey(), (char) ("   234".indexOf(mappedChar) + '0'));
+
+        });
+
+        log.atDebug()
+           .setMessage("Path:\n{}")
+           .addArgument(() -> Coordinate.printMap(rows, columns, mirrorMap))
+           .log();
+
+        Set<Coordinate> maxEnergizedTileSet = maxEnergizedTiles.stream().map(Entry::getKey).collect(Collectors.toSet());
+        log.atDebug()
+           .setMessage("Energized tiles:\n{}")
+           .addArgument(() -> Coordinate.printMap(rows, columns, maxEnergizedTileSet))
+           .log();
+
+        return energizedTileCount;
     }
 
     /**
@@ -252,11 +386,6 @@ public class Day16 {
                     break;
             }
         }
-    }
-
-    private static int part2(final List<String> lines) {
-
-        return -1;
     }
 
 }
