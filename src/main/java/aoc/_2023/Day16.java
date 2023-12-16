@@ -108,9 +108,6 @@ public class Day16 {
         // Start following the path of the light
         followTheLight(currentPosition, currentDirection, mirrorMap, energizedTiles);
 
-        // Count the energized tiles
-        Set<Coordinate> energizedTileSet = energizedTiles.stream().map(Entry::getKey).collect(Collectors.toSet());
-
         energizedTiles.stream().forEach(e -> {
             char mappedChar = mirrorMap.getOrDefault(e.getKey(), '.');
             if (mappedChar == '.')
@@ -126,6 +123,9 @@ public class Day16 {
            .setMessage("Path:\n{}")
            .addArgument(() -> Coordinate.printMap(rows, columns, mirrorMap))
            .log();
+
+        // Count the energized tiles
+        Set<Coordinate> energizedTileSet = energizedTiles.stream().map(Entry::getKey).collect(Collectors.toSet());
 
         log.atDebug()
            .setMessage("Energized tiles:\n{}")
@@ -152,9 +152,18 @@ public class Day16 {
         char chatAtPosition;
         // Energize the tile if we're not done, on the frame, or have been here already
         // from this direction
-        while (!done &&
-               (chatAtPosition = mirrorMap.getOrDefault(currentPosition, '.')) != '#' &&
-               energizedTiles.add(new SimpleEntry<Coordinate, Direction>(currentPosition, currentDirection))) {
+        while (!done) {
+
+            chatAtPosition = mirrorMap.getOrDefault(currentPosition, '.');
+            if (chatAtPosition == '#') {
+                done = true;
+                continue;
+            }
+
+            if (!energizedTiles.add(new SimpleEntry<Coordinate, Direction>(currentPosition, currentDirection))) {
+                done = true;
+                continue;
+            }
 
             // Encounter?
             switch (chatAtPosition) {
@@ -194,8 +203,10 @@ public class Day16 {
                     switch (currentDirection) {
                         case RIGHT:
                         case LEFT:
-                            followTheLight(currentPosition, Direction.UP, mirrorMap, energizedTiles);
-                            followTheLight(currentPosition, Direction.DOWN, mirrorMap, energizedTiles);
+                            followTheLight(new Coordinate(currentPosition.getRow() - 1, currentPosition.getColumn()),
+                                           Direction.UP, mirrorMap, energizedTiles);
+                            followTheLight(new Coordinate(currentPosition.getRow() + 1, currentPosition.getColumn()),
+                                           Direction.DOWN, mirrorMap, energizedTiles);
                             done = true;
                             continue;
                         case UP:
@@ -208,8 +219,10 @@ public class Day16 {
                     switch (currentDirection) {
                         case UP:
                         case DOWN:
-                            followTheLight(currentPosition, Direction.LEFT, mirrorMap, energizedTiles);
-                            followTheLight(currentPosition, Direction.RIGHT, mirrorMap, energizedTiles);
+                            followTheLight(new Coordinate(currentPosition.getRow(), currentPosition.getColumn() - 1),
+                                           Direction.LEFT, mirrorMap, energizedTiles);
+                            followTheLight(new Coordinate(currentPosition.getRow(), currentPosition.getColumn() + 1),
+                                           Direction.RIGHT, mirrorMap, energizedTiles);
                             done = true;
                             continue;
                         case RIGHT:

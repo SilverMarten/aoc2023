@@ -126,7 +126,9 @@ public final class Coordinate implements Comparable<Coordinate> {
         Map<Coordinate, Character> coordinates = new HashMap<>();
         lines.stream().forEachOrdered(line -> {
             BitSet chars = ArrayUtils.indexesOf(line.toCharArray(), blankSpace);
-            chars.flip(0, chars.length());
+            // Use the length of the line, since the length of the BitSet is only the last
+            // set bit, which might not be the end of the line.
+            chars.flip(0, line.length());
             chars.stream()
                  .forEach(c -> coordinates.put(new Coordinate(row.get(), c + 1), line.charAt(c)));
 
