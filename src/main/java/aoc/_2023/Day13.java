@@ -131,10 +131,10 @@ public class Day13 {
         int rows = lines.size();
         int columns = lines.get(0).length();
 
-        Set<Coordinate> coordinates = Coordinate.mapCoordinates(lines);
+        Set<Coordinate> coordinates = Coordinate.findCoordinates(lines);
 
         log.atDebug().setMessage("Block:\n{}\n{} rows, {} columns")
-           .addArgument(() -> Coordinate.printMap(coordinates, rows, columns))
+           .addArgument(() -> Coordinate.printMap(rows, columns, coordinates))
            .addArgument(rows)
            .addArgument(columns)
            .log();
@@ -160,7 +160,7 @@ public class Day13 {
 
             log.atTrace().setMessage("Translated short side:\n{}\n{}")
                .addArgument(shortSide)
-               .addArgument(() -> Coordinate.printMap(shortSide, rows, columns))
+               .addArgument(() -> Coordinate.printMap(rows, columns, shortSide))
                .log();
 
             // Find the corresponding rows in the rest of the map
@@ -196,7 +196,7 @@ public class Day13 {
 
             log.atTrace().setMessage("Translated short side:\n{}\n{}")
                .addArgument(shortSide)
-               .addArgument(() -> Coordinate.printMap(shortSide, rows, columns))
+               .addArgument(() -> Coordinate.printMap(rows, columns, shortSide))
                .log();
 
             // Find the corresponding rows in the rest of the map
@@ -228,10 +228,10 @@ public class Day13 {
         int rows = lines.size();
         int columns = lines.get(0).length();
 
-        Set<Coordinate> coordinates = Coordinate.mapCoordinates(lines);
+        Set<Coordinate> coordinates = Coordinate.findCoordinates(lines);
 
         log.atDebug().setMessage("Block:\n{}\n{} rows, {} columns")
-           .addArgument(() -> Coordinate.printMap(coordinates, rows, columns))
+           .addArgument(() -> Coordinate.printMap(rows, columns, coordinates))
            .addArgument(rows)
            .addArgument(columns)
            .log();
@@ -258,7 +258,7 @@ public class Day13 {
 
             log.atTrace().setMessage("Translated short side:\n{}\n{}")
                .addArgument(shortSide)
-               .addArgument(() -> Coordinate.printMap(shortSide, rows, columns))
+               .addArgument(() -> Coordinate.printMap(rows, columns, shortSide))
                .log();
 
             // Find the corresponding rows in the rest of the map
@@ -294,7 +294,7 @@ public class Day13 {
 
             log.atTrace().setMessage("Translated short side:\n{}\n{}")
                .addArgument(shortSide)
-               .addArgument(() -> Coordinate.printMap(shortSide, rows, columns))
+               .addArgument(() -> Coordinate.printMap(rows, columns, shortSide))
                .log();
 
             // Find the corresponding rows in the rest of the map

@@ -84,13 +84,13 @@ public class Day14 {
         int columns = lines.get(0).length();
 
         // Parse the map for the squareRocks
-        Set<Coordinate> squareRocks = Coordinate.mapCoordinates(lines, SQUARE_ROCK_CHAR);
+        Set<Coordinate> squareRocks = Coordinate.findCoordinates(lines, SQUARE_ROCK_CHAR);
 
         // Add some implicit square rocks in last row
         IntStream.rangeClosed(1, columns).mapToObj(c -> new Coordinate(rows + 1, c)).forEach(squareRocks::add);
 
         // Parse the map for the roundRocks
-        Set<Coordinate> roundRocks = Coordinate.mapCoordinates(lines, ROUND_ROCK_CHAR);
+        Set<Coordinate> roundRocks = Coordinate.findCoordinates(lines, ROUND_ROCK_CHAR);
 
         // For each column, count the round rocks between the square rocks
         return IntStream.rangeClosed(1, columns).map(column -> {
@@ -140,7 +140,7 @@ public class Day14 {
         int columns = lines.get(0).length();
 
         // Parse the map for the squareRocks
-        Set<Coordinate> squareRocks = Coordinate.mapCoordinates(lines, SQUARE_ROCK_CHAR);
+        Set<Coordinate> squareRocks = Coordinate.findCoordinates(lines, SQUARE_ROCK_CHAR);
 
         // Add some implicit square rocks around the frame
         IntStream.rangeClosed(1, columns).mapToObj(c -> new Coordinate(0, c)).forEach(squareRocks::add);
@@ -149,7 +149,7 @@ public class Day14 {
         IntStream.rangeClosed(1, rows).mapToObj(r -> new Coordinate(r, columns + 1)).forEach(squareRocks::add);
 
         // Parse the map for the roundRocks
-        Set<Coordinate> roundRocks = Coordinate.mapCoordinates(lines, ROUND_ROCK_CHAR);
+        Set<Coordinate> roundRocks = Coordinate.findCoordinates(lines, ROUND_ROCK_CHAR);
 
         log.atDebug()
            .setMessage("Start:\n{}")

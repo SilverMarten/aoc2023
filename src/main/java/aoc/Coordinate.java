@@ -1,7 +1,10 @@
 package aoc;
 
+import java.util.BitSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -95,6 +98,45 @@ public final class Coordinate implements Comparable<Coordinate> {
     }
 
     /**
+     * Create a map of the coordinates of non-blank characters. The default blaank
+     * character is a period '.'.
+     * 
+     * @param lines
+     *     The lines to find and map the locations of non-blank characters.
+     * @return
+     *     A map of coordinates to the character found at those coordinates.
+     */
+    public static Map<Coordinate, Character> mapCoordinates(List<String> lines) {
+        return mapCoordinates(lines, '.');
+    }
+
+    /**
+     * Create a map of the coordinates of non-blank characters.
+     * 
+     * @param lines
+     *     The lines to find and map the locations of non-blank characters.
+     * @param blankSpace The character to be treated as a blank space.
+     * @return
+     *     A map of coordinates to the character found at those coordinates.
+     */
+    public static Map<Coordinate, Character> mapCoordinates(List<String> lines, char blankSpace) {
+
+        AtomicInteger row = new AtomicInteger(1);
+
+        Map<Coordinate, Character> coordinates = new HashMap<>();
+        lines.stream().forEachOrdered(line -> {
+            BitSet chars = ArrayUtils.indexesOf(line.toCharArray(), blankSpace);
+            chars.flip(0, chars.length());
+            chars.stream()
+                 .forEach(c -> coordinates.put(new Coordinate(row.get(), c + 1), line.charAt(c)));
+
+            row.getAndIncrement();
+        });
+
+        return coordinates;
+    }
+
+    /**
      * Map a list of strings into a set of coordinates of the locations of # in
      * the strings.
      * 
@@ -102,8 +144,8 @@ public final class Coordinate implements Comparable<Coordinate> {
      *     The lines to find and map the locations of #s.
      * @return The set of coordinates of the locations of #s.
      */
-    public static Set<Coordinate> mapCoordinates(List<String> lines) {
-        return mapCoordinates(lines, '#');
+    public static Set<Coordinate> findCoordinates(List<String> lines) {
+        return findCoordinates(lines, '#');
     }
 
     /**
@@ -118,7 +160,7 @@ public final class Coordinate implements Comparable<Coordinate> {
      *     coordinates of.
      * @return The set of coordinates of the locations of the given character.
      */
-    public static Set<Coordinate> mapCoordinates(List<String> lines, char charToFind) {
+    public static Set<Coordinate> findCoordinates(List<String> lines, char charToFind) {
         AtomicInteger row = new AtomicInteger(1);
 
         Set<Coordinate> coordinates = new HashSet<>();
@@ -134,18 +176,50 @@ public final class Coordinate implements Comparable<Coordinate> {
     }
 
     /**
-     * Create a printout of the map, using '#' as the marker and '.' for empty
+     * Create a printout of the map, using '.' for empty
      * spaces.
      * 
-     * @param coordinates
-     *     The set of coordinates to display.
      * @param rows
      *     The number of rows in the map.
      * @param columns
      *     The number of columns in the map.
+     * @param coordinates
+     *     The map of coordinates to display the corresponding character.
+     * 
      * @return A string representation of the map.
      */
-    public static String printMap(Set<Coordinate> coordinates, int rows, int columns) {
+    public static String printMap(int rows, int columns, Map<Coordinate, Character> coordinates) {
+
+        int location = columns;
+
+        StringBuilder printout = new StringBuilder(rows * columns + rows);
+
+        while (location < (rows + 1) * columns) {
+            printout.append(coordinates.getOrDefault(new Coordinate(location / columns, location % columns + 1), '.'));
+
+            if (location % columns == columns - 1)
+                printout.append('\n');
+
+            location++;
+        }
+
+        return printout.toString();
+    }
+
+    /**
+     * Create a printout of the map, using '#' as the marker and '.' for empty
+     * spaces.
+     * 
+     * @param rows
+     *     The number of rows in the map.
+     * @param columns
+     *     The number of columns in the map.
+     * @param coordinates
+     *     The set of coordinates to display.
+     * 
+     * @return A string representation of the map.
+     */
+    public static String printMap(int rows, int columns, Set<Coordinate> coordinates) {
         return printMap(rows, columns, coordinates, '#');
     }
 

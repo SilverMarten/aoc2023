@@ -311,7 +311,7 @@ public class Day10 {
 
         log.debug("Expanded pipe coordinates from (0,0) to ({},{}): {}", expandedRows, expandedColumns, pipeLocations);
         log.atDebug().setMessage("Expanded map:\n{}")
-           .addArgument(() -> Coordinate.printMap(pipeLocations, expandedRows, expandedColumns))
+           .addArgument(() -> Coordinate.printMap(expandedRows, expandedColumns, pipeLocations))
            .log();
 
         // Find all outside spaces.
