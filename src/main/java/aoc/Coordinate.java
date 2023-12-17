@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -35,6 +36,10 @@ public final class Coordinate implements Comparable<Coordinate> {
         return column;
     }
 
+    public static Coordinate of(int row, int column) {
+        return new Coordinate(row, column);
+    }
+
     /**
      * @return The set of adjacent coordinates to this coordinate.
      */
@@ -42,7 +47,7 @@ public final class Coordinate implements Comparable<Coordinate> {
         return IntStream.rangeClosed(-1, 1)
                         .mapToObj(x -> IntStream.rangeClosed(-1, 1)
                                                 .filter(y -> !(x == 0 && y == 0))
-                                                .mapToObj(y -> new Coordinate(this.row + y, this.column + x)))
+                                                .mapToObj(y -> Coordinate.of(this.row + y, this.column + x)))
                         .flatMap(Function.identity())
                         .collect(Collectors.toSet());
     }
@@ -98,7 +103,34 @@ public final class Coordinate implements Comparable<Coordinate> {
     }
 
     /**
-     * Create a map of the coordinates of non-blank characters. The default blaank
+     * Create a map of the coordinates of digits.
+     * 
+     * @param lines
+     *     The lines to find and map the locations of digits.
+     * @return
+     *     A map of coordinates to the digit found at those coordinates.
+     */
+    public static Map<Coordinate, Integer> mapDigits(List<String> lines) {
+
+        AtomicInteger row = new AtomicInteger(1);
+
+        Map<Coordinate, Integer> coordinates = new HashMap<>();
+        lines.stream().forEachOrdered(line -> {
+            IntStream.range(0, line.length())
+                     .forEach(i -> {
+                         char digit = line.charAt(i);
+                         if (Character.isDigit(digit))
+                             coordinates.put(new Coordinate(row.get(), i + 1), digit - '0');
+                     });
+
+            row.getAndIncrement();
+        });
+
+        return coordinates;
+    }
+
+    /**
+     * Create a map of the coordinates of non-blank characters. The default blank
      * character is a period '.'.
      * 
      * @param lines
@@ -175,6 +207,76 @@ public final class Coordinate implements Comparable<Coordinate> {
         }
 
         return coordinates;
+    }
+
+    /**
+     * Create a printout of the digit map, using '.' for empty
+     * spaces.
+     * 
+     * @param rows
+     *     The number of rows in the map.
+     * @param columns
+     *     The number of columns in the map.
+     * @param coordinates
+     *     The map of coordinates to display the corresponding digit.
+     * 
+     * @return A string representation of the map.
+     */
+    public static String printDigitMap(int rows, int columns, Map<Coordinate, Integer> coordinates) {
+
+        int location = columns;
+
+        StringBuilder printout = new StringBuilder(rows * columns + rows);
+
+        while (location < (rows + 1) * columns) {
+            printout.append((char) (coordinates.getOrDefault(new Coordinate(location / columns, location % columns + 1),
+                                                             '.' - '0')
+                                    + '0'));
+
+            if (location % columns == columns - 1)
+                printout.append('\n');
+
+            location++;
+        }
+
+        return printout.toString();
+    }
+
+    /**
+     * Create a printout of the map, translating the value to a character with the
+     * given function, using '.' for empty spaces.
+     * 
+     * @param <V> The type of the value in the given map.
+     * 
+     * @param rows
+     *     The number of rows in the map.
+     * @param columns
+     *     The number of columns in the map.
+     * @param coordinates
+     *     The map of coordinates to display the corresponding character.
+     * @param The function to map the given value type to a character.
+     * 
+     * @return A string representation of the map.
+     */
+    public static <V> String printMap(int rows, int columns, Map<Coordinate, V> coordinates,
+                                      Function<V, Character> characterMapper) {
+
+        int location = columns;
+
+        StringBuilder printout = new StringBuilder(rows * columns + rows);
+
+        while (location < (rows + 1) * columns) {
+            Optional<V> charToPrint = Optional.ofNullable(coordinates.get(new Coordinate(location / columns,
+                                                                                         location % columns + 1)));
+            printout.append(charToPrint.map(characterMapper).orElse('.'));
+
+            if (location % columns == columns - 1)
+                printout.append('\n');
+
+            location++;
+        }
+
+        return printout.toString();
     }
 
     /**
