@@ -57,6 +57,11 @@ public class Day18 {
             return directionMap.get(symbol);
         }
 
+        @Override
+        public String toString() {
+            return symbol + "";
+        }
+
     }
 
     public static void main(String[] args) {
@@ -141,6 +146,56 @@ public class Day18 {
         return excavation.size();*/
     }
 
+    /**
+     * Convert the hexadecimal color codes into the correct instructions; if the
+     * Elves follow this new dig plan, how many cubic meters of lava could the
+     * lagoon hold?
+     * 
+     * @param lines
+     *            The lines describing the dig plan
+     * @return The volume of the excavated lagoon.
+     */
+    private static long part2(final List<String> lines) {
+
+        // Follow the dig plan
+        Map<Coordinate, Integer> excavation = excavateColours(lines);
+
+        log.debug("Excavated {} spaces.", excavation.size());
+
+        // Determine boundaries (with padding)
+        int maxRow = excavation.keySet().stream().mapToInt(Coordinate::getRow).max().getAsInt() + 1;
+        int maxColumn = excavation.keySet().stream().mapToInt(Coordinate::getColumn).max().getAsInt() + 1;
+        int minRow = excavation.keySet().stream().mapToInt(Coordinate::getRow).min().getAsInt() - 1;
+        int minColumn = excavation.keySet().stream().mapToInt(Coordinate::getColumn).min().getAsInt() - 1;
+
+        log.atDebug()
+           .setMessage("Trench:\n{}")
+           .addArgument(() -> Coordinate.printMap(minRow, minColumn, maxRow, maxColumn, excavation.keySet()))
+           .log();
+
+        // Hollow out the middle
+        // Find all the "outside" spaces
+        Set<Coordinate> outsideSpaces = new HashSet<>();
+        Queue<Coordinate> spacesToCheck = new ArrayDeque<>();
+        Range<Integer> rowRange = Range.of(minRow, maxRow);
+        Range<Integer> columnRange = Range.of(minColumn, maxColumn);
+        spacesToCheck.add(Coordinate.of(minRow, minColumn));
+        while (!spacesToCheck.isEmpty()) {
+            Coordinate spaceToCheck = spacesToCheck.poll();
+            if (!(excavation.containsKey(spaceToCheck) || outsideSpaces.contains(spaceToCheck))) {
+                outsideSpaces.add(spaceToCheck);
+                spacesToCheck.addAll(spaceToCheck.findAdjacent()
+                                                 .stream()
+                                                 .filter(c -> !(excavation.containsKey(c) || outsideSpaces.contains(c)) &&
+                                                              rowRange.contains(c.getRow()) && columnRange.contains(c.getColumn()))
+                                                 .collect(Collectors.toSet()));
+            }
+        }
+
+        // Well... All I need is the size of the lagoon right?
+        return (maxRow - minRow + 1) * (maxColumn - minColumn + 1) - outsideSpaces.size();
+    }
+
     private static Map<Coordinate, Integer> excavate(final List<String> lines) {
         Map<Coordinate, Integer> excavation = new HashMap<>();
 
@@ -168,9 +223,46 @@ public class Day18 {
         return excavation;
     }
 
-    private static int part2(final List<String> lines) {
+    /**
+     * Interpret the colour value as the distance and direction.
+     * 
+     * @param lines
+     *            The lines of excavation instructions.
+     * @return The coordinates of the trench.
+     */
+    private static Map<Coordinate, Integer> excavateColours(final List<String> lines) {
+        Map<Coordinate, Integer> excavation = new HashMap<>();
 
-        return -1;
+        // Yes, "The digger starts in a 1 meter cube hole in the ground.",
+        // but the colour isn't given until the last step.
+        Coordinate currentPosition = Coordinate.of(1, 1);
+
+        Map<Integer, Direction> directionMap = Map.of(0, Direction.RIGHT, 1, Direction.DOWN, 2, Direction.LEFT, 3, Direction.UP);
+
+        for (String line : lines) {
+            String[] arguments = line.split(" ");
+            int colour = Integer.parseInt(arguments[2].substring(2, 8), 16);
+            Direction dir = directionMap.get(colour % 16);
+            int distance = colour / 16;
+
+            log.atDebug().setMessage("#{} = {} {}")
+               .addArgument(Integer.toHexString(colour))
+               .addArgument(dir)
+               .addArgument(distance)
+               .log();
+
+            // Excavate that many cubes in that direction
+            int currentRow = currentPosition.getRow();
+            int currentColumn = currentPosition.getColumn();
+            IntStream.rangeClosed(1, distance)
+                     .forEach(i -> excavation.put(Coordinate.of(currentRow + dir.translation.getRow() * i,
+                                                                currentColumn + dir.translation.getColumn() * i),
+                                                  colour));
+            currentPosition = Coordinate.of(currentRow + dir.translation.getRow() * distance,
+                                            currentColumn + dir.translation.getColumn() * distance);
+        }
+
+        return excavation;
     }
 
 }
