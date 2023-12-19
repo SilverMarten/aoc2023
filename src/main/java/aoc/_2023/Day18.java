@@ -12,11 +12,13 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Range;
 import org.slf4j.LoggerFactory;
 
 import aoc.Coordinate;
 import aoc.FileUtils;
+import aoc.LongCoordinate;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
@@ -36,10 +38,11 @@ public class Day18 {
     private static final String TEST_INPUT_TXT = "testInput/Day18.txt";
 
     private enum Direction {
-        UP('U', Coordinate.of(-1, 0)),
+        // The order corresponds to the values used in part 2
         RIGHT('R', Coordinate.of(0, 1)),
         DOWN('D', Coordinate.of(1, 0)),
-        LEFT('L', Coordinate.of(0, -1));
+        LEFT('L', Coordinate.of(0, -1)),
+        UP('U', Coordinate.of(-1, 0));
 
         char symbol;
         Coordinate translation;
@@ -97,10 +100,17 @@ public class Day18 {
      * their dig plan, how many cubic meters of lava could it hold?
      * 
      * @param lines
-     *            The lines describing the dig plan
+     *     The lines describing the dig plan
      * @return The volume of the excavated lagoon.
      */
     private static int part1(final List<String> lines) {
+
+        log.atDebug()
+           .setMessage("Turns:\n{}")
+           .addArgument(() -> CollectionUtils.getCardinalityMap(lines.stream()
+                                                                     .map(l -> Direction.of(l.charAt(0)))
+                                                                     .collect(Collectors.toList())))
+           .log();
 
         // Follow the dig plan
         Map<Coordinate, Integer> excavation = excavate(lines);
@@ -129,8 +139,10 @@ public class Day18 {
                 outsideSpaces.add(spaceToCheck);
                 spacesToCheck.addAll(spaceToCheck.findAdjacent()
                                                  .stream()
-                                                 .filter(c -> !(excavation.containsKey(c) || outsideSpaces.contains(c)) &&
-                                                              rowRange.contains(c.getRow()) && columnRange.contains(c.getColumn()))
+                                                 .filter(c -> !(excavation.containsKey(c) || outsideSpaces.contains(c))
+                                                              &&
+                                                              rowRange.contains(c.getRow())
+                                                              && columnRange.contains(c.getColumn()))
                                                  .collect(Collectors.toSet()));
             }
         }
@@ -152,10 +164,89 @@ public class Day18 {
      * lagoon hold?
      * 
      * @param lines
-     *            The lines describing the dig plan
+     *     The lines describing the dig plan
      * @return The volume of the excavated lagoon.
      */
     private static long part2(final List<String> lines) {
+
+        // "Research" has led me to:
+        // https://www.themathdoctors.org/polygon-coordinates-and-areas/
+
+        // First I need the list of coordinates of the corners
+        Queue<LongCoordinate> corners = findCorners(lines);
+
+        log.debug("There are {} corners", corners.size() - 1);
+
+        // (x1y2 - x2y1)
+        long doubleArea = 0L;
+        LongCoordinate previousCorner = corners.poll();
+        while (!corners.isEmpty()) {
+            LongCoordinate nextCorner = corners.poll();
+            doubleArea += previousCorner.getColumn() * nextCorner.getRow()
+                          - previousCorner.getRow() * nextCorner.getColumn();
+            previousCorner = nextCorner;
+        }
+
+        // How big is the trench?
+        long trenchLength = lines.stream()
+                                 .mapToLong(line -> Integer.parseInt(line.substring(line.indexOf('#') + 1,
+                                                                                    line.length() - 2),
+                                                                     16))
+                                 .sum();
+        log.debug("The trench itself is {}m.", trenchLength);
+
+        // I guess the measurement was effectively from the middle of trench?
+        // So only half of it needed to be added to the interior?
+        // Also, +1?
+        return (Math.abs(doubleArea) + trenchLength) / 2 + 1;
+    }
+
+    private static Queue<LongCoordinate> findCorners(final List<String> lines) {
+        Queue<LongCoordinate> corners = new ArrayDeque<>();
+        LongCoordinate lastCorner = LongCoordinate.of(0, 0);
+        corners.add(lastCorner);
+        for (String line : lines) {
+            int colour = Integer.parseInt(line.substring(line.indexOf('#') + 1, line.length() - 1), 16);
+            Direction dir = Direction.values()[colour % 16];
+            int distance = colour / 16;
+
+            log.atDebug()
+               .setMessage("#{} = {} {}")
+               .addArgument(Integer.toHexString(colour))
+               .addArgument(dir)
+               .addArgument(distance)
+               .log();
+
+            lastCorner = LongCoordinate.of(lastCorner.getRow() + distance * dir.translation.getRow(),
+                                           lastCorner.getColumn() + distance * dir.translation.getColumn());
+            corners.add(lastCorner);
+        }
+
+        // Add the start again
+        corners.add(LongCoordinate.of(0, 0));
+        return corners;
+    }
+
+    /**
+     * Convert the hexadecimal color codes into the correct instructions; if the
+     * Elves follow this new dig plan, how many cubic meters of lava could the
+     * lagoon hold?
+     * 
+     * @param lines
+     *     The lines describing the dig plan
+     * @return The volume of the excavated lagoon.
+     */
+    private static long part2_bad(final List<String> lines) {
+
+        Map<Integer, Direction> directionMap = Map.of(0, Direction.RIGHT, 1, Direction.DOWN, 2, Direction.LEFT, 3,
+                                                      Direction.UP);
+        log.atDebug()
+           .setMessage("Turns:\n{}")
+           .addArgument(() -> CollectionUtils.getCardinalityMap(lines.stream()
+                                                                     .map(l -> directionMap.get(l.charAt(l.length() - 2)
+                                                                                                - '0'))
+                                                                     .collect(Collectors.toList())))
+           .log();
 
         // Follow the dig plan
         Map<Coordinate, Integer> excavation = excavateColours(lines);
@@ -163,6 +254,8 @@ public class Day18 {
         log.debug("Excavated {} spaces.", excavation.size());
 
         // Determine boundaries (with padding)
+        // XXX This runs out of memory before the debug statement. Clearly not a good
+        // approach.
         int maxRow = excavation.keySet().stream().mapToInt(Coordinate::getRow).max().getAsInt() + 1;
         int maxColumn = excavation.keySet().stream().mapToInt(Coordinate::getColumn).max().getAsInt() + 1;
         int minRow = excavation.keySet().stream().mapToInt(Coordinate::getRow).min().getAsInt() - 1;
@@ -186,8 +279,10 @@ public class Day18 {
                 outsideSpaces.add(spaceToCheck);
                 spacesToCheck.addAll(spaceToCheck.findAdjacent()
                                                  .stream()
-                                                 .filter(c -> !(excavation.containsKey(c) || outsideSpaces.contains(c)) &&
-                                                              rowRange.contains(c.getRow()) && columnRange.contains(c.getColumn()))
+                                                 .filter(c -> !(excavation.containsKey(c) || outsideSpaces.contains(c))
+                                                              &&
+                                                              rowRange.contains(c.getRow())
+                                                              && columnRange.contains(c.getColumn()))
                                                  .collect(Collectors.toSet()));
             }
         }
@@ -227,7 +322,7 @@ public class Day18 {
      * Interpret the colour value as the distance and direction.
      * 
      * @param lines
-     *            The lines of excavation instructions.
+     *     The lines of excavation instructions.
      * @return The coordinates of the trench.
      */
     private static Map<Coordinate, Integer> excavateColours(final List<String> lines) {
@@ -237,7 +332,8 @@ public class Day18 {
         // but the colour isn't given until the last step.
         Coordinate currentPosition = Coordinate.of(1, 1);
 
-        Map<Integer, Direction> directionMap = Map.of(0, Direction.RIGHT, 1, Direction.DOWN, 2, Direction.LEFT, 3, Direction.UP);
+        Map<Integer, Direction> directionMap = Map.of(0, Direction.RIGHT, 1, Direction.DOWN, 2, Direction.LEFT, 3,
+                                                      Direction.UP);
 
         for (String line : lines) {
             String[] arguments = line.split(" ");
