@@ -232,6 +232,21 @@ public class Day19 {
         Workflow reject = workflowMap.get("R");
         Set<Part> accepted = new HashSet<>();
 
+        // Run each part through the workflows
+        for (Part part : parts) {
+            Workflow currentWorkflow = start;
+            while (currentWorkflow != accept && currentWorkflow != reject) {
+                currentWorkflow = currentWorkflow.rules.stream()
+                                                       .map(r -> r.evaluate(part))
+                                                       .filter(Optional::isPresent)
+                                                       .findFirst()
+                                                       .get()
+                                                       .get();
+            }
+            if (currentWorkflow == accept)
+                accepted.add(part);
+        }
+
         return accepted.stream().mapToInt(Part::getSum).sum();
     }
 
