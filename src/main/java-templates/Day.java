@@ -14,7 +14,7 @@ import ch.qos.logback.classic.LoggerContext;
  * @author Paul Cormier
  *
  */
-public class Day${day}{
+public class Day${day} {
 
     private static final Logger log = ((LoggerContext) LoggerFactory.getILoggerFactory()).getLogger(Day${day}.class);
 
@@ -30,7 +30,12 @@ public class Day${day}{
         // Read the test file
         List<String> testLines = FileUtils.readFile(TEST_INPUT_TXT);
 
-        log.info("{}", part1(testLines));
+        int expectedTestResult = 1_234_567_890;
+        int part1TestResult = part1(testLines);
+        log.info("{} (should be {})", part1TestResult, expectedTestResult);
+
+        if (part1TestResult != expectedTestResult)
+            log.error("The test result doesn't match the expected value.");
 
         log.setLevel(Level.INFO);
 
@@ -43,7 +48,12 @@ public class Day${day}{
         log.info("Part 2:");
         log.setLevel(Level.DEBUG);
 
-        log.info("{}", part2(testLines));
+        expectedTestResult = 1_234_567_890;
+        int part2TestResult = part2(testLines);
+        log.info("{} (should be {})", part2TestResult, expectedTestResult);
+
+        if (part2TestResult != expectedTestResult)
+            log.error("The test result doesn't match the expected value.");
 
         log.setLevel(Level.INFO);
 
