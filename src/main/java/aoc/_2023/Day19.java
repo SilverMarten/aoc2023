@@ -12,7 +12,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.ToLongFunction;
@@ -75,21 +74,76 @@ public class Day19 {
                    sRanges.stream().mapToLong(mapper).sum();
         }
 
-        public RangedPart evaluate(Workflow.Rule rule) {
+        public RangedPart evaluateTrue(Workflow.Rule rule) {
             RangedPart newPart = new RangedPart(this);
-            // Evaluate the rule, replacing the appropriate range with a (potentially) altered range
-
-            newPart.xRanges = newPart.xRanges.stream()
-                                             .map(range -> mapper(rule, range))
-                                             .collect(Collectors.toSet());
+            // Evaluate the rule, replacing the appropriate range with a (potentially)
+            // altered range
+            switch (rule.propertyName) {
+                case "x":
+                    newPart.xRanges = newPart.xRanges.stream()
+                                                     .map(range -> findMatchingRange(rule, range))
+                                                     .collect(Collectors.toSet());
+                    break;
+                case "m":
+                    newPart.mRanges = newPart.mRanges.stream()
+                                                     .map(range -> findMatchingRange(rule, range))
+                                                     .collect(Collectors.toSet());
+                    break;
+                case "a":
+                    newPart.aRanges = newPart.aRanges.stream()
+                                                     .map(range -> findMatchingRange(rule, range))
+                                                     .collect(Collectors.toSet());
+                    break;
+                case "s":
+                    newPart.sRanges = newPart.sRanges.stream()
+                                                     .map(range -> findMatchingRange(rule, range))
+                                                     .collect(Collectors.toSet());
+                    break;
+            }
             return newPart;
         }
 
-        private static Range<Integer> mapper(Workflow.Rule rule, Range<Integer> range) {
+        private static Range<Integer> findMatchingRange(Workflow.Rule rule, Range<Integer> range) {
             return range.intersectionWith(">".equals(rule.comparisonString) ? Range.of(rule.value + 1,
                                                                                        RANGE_MAX)
                                                                             : Range.of(RANGE_MIN,
                                                                                        rule.value - 1));
+        }
+
+        public RangedPart evaluateFalse(Workflow.Rule rule) {
+            RangedPart newPart = new RangedPart(this);
+            // Evaluate the rule, replacing the appropriate range with a (potentially)
+            // altered range
+            switch (rule.propertyName) {
+                case "x":
+                    newPart.xRanges = newPart.xRanges.stream()
+                                                     .map(range -> findNonMatchingRange(rule, range))
+                                                     .collect(Collectors.toSet());
+                    break;
+                case "m":
+                    newPart.mRanges = newPart.mRanges.stream()
+                                                     .map(range -> findNonMatchingRange(rule, range))
+                                                     .collect(Collectors.toSet());
+                    break;
+                case "a":
+                    newPart.aRanges = newPart.aRanges.stream()
+                                                     .map(range -> findNonMatchingRange(rule, range))
+                                                     .collect(Collectors.toSet());
+                    break;
+                case "s":
+                    newPart.sRanges = newPart.sRanges.stream()
+                                                     .map(range -> findNonMatchingRange(rule, range))
+                                                     .collect(Collectors.toSet());
+                    break;
+            }
+            return newPart;
+        }
+
+        private static Range<Integer> findNonMatchingRange(Workflow.Rule rule, Range<Integer> range) {
+            return range.intersectionWith(!">".equals(rule.comparisonString) ? Range.of(rule.value,
+                                                                                        RANGE_MAX)
+                                                                             : Range.of(RANGE_MIN,
+                                                                                        rule.value));
         }
 
         @Override
@@ -198,9 +252,9 @@ public class Day19 {
 
             /**
              * @param part
-             *            The part to test.
+             *     The part to test.
              * @return If the part passes the rule, the outcome, otherwise an
-             *         empty {@link Optional}.
+             *     empty {@link Optional}.
              */
             public Optional<Workflow> evaluate(Part part) {
                 return Optional.ofNullable(comparison.test(property.apply(part), value) ? outcome : null);
@@ -266,7 +320,8 @@ public class Day19 {
         log.setLevel(Level.DEBUG);
 
         long part2Result = part2(testLines);
-        log.info("The number of distinct combinations that will be accepted is: {} (should be 167409079868000)", part2Result);
+        log.info("The number of distinct combinations that will be accepted is: {} (should be 167409079868000)",
+                 part2Result);
         if (part2Result != 167409079868000L)
             log.error("The sample data is not adding up.");
 
@@ -281,7 +336,7 @@ public class Day19 {
      * ultimately get accepted?
      * 
      * @param lines
-     *            The lines representing workflows and parts.
+     *     The lines representing workflows and parts.
      * @return The sum of the total values of the accepted parts.
      */
     private static int part1(final List<String> lines) {
@@ -290,7 +345,7 @@ public class Day19 {
         Map<String, Workflow> workflowMap = parseWorkflows(lines);
 
         int partsStart = workflowMap.size() - 1;
-        // Parse the parts 
+        // Parse the parts
         Set<Part> parts = lines.stream()
                                .skip(partsStart)
                                .map(line -> {
@@ -338,8 +393,8 @@ public class Day19 {
      * workflows?
      * 
      * @param lines
-     *            The lines representing workflows and parts (though the parts
-     *            are to be excluded).
+     *     The lines representing workflows and parts (though the parts
+     *     are to be excluded).
      * @return The number of distinct combinations that will be accepted.
      */
     private static long part2(final List<String> lines) {
@@ -373,9 +428,12 @@ public class Day19 {
             // If it's not the rejected state, process it accordingly
             if (!reject.equals(currentWorkflow)) {
                 // Evaluate each rule and add those states to the queue
-                stateQueue.addAll(currentWorkflow.rules.stream()
-                                                       .map(r -> new SimpleEntry<>(r.outcome, currentPart.evaluate(r)))
-                                                       .collect(Collectors.toList()));
+                for (Workflow.Rule rule : currentWorkflow.rules) {
+                    stateQueue.add(new SimpleEntry<>(rule.outcome, currentPart.evaluateTrue(rule)));
+                    // Set the remaining state which would make it to the next rule
+                    currentPart = currentPart.evaluateFalse(rule);
+                }
+
             }
         }
 
@@ -389,7 +447,7 @@ public class Day19 {
      * them all.
      * 
      * @param lines
-     *            The lines representing {@link Workflow}s.
+     *     The lines representing {@link Workflow}s.
      * @return A map of {@link Workflow} names to their instances.
      */
     private static Map<String, Workflow> parseWorkflows(final List<String> lines) {
@@ -406,7 +464,8 @@ public class Day19 {
                                                String conditionString = r.indexOf(':') >= 0 ? r.split(":")[0] : "";
                                                String outcomeName = r.indexOf(':') >= 0 ? r.split(":")[1] : r;
                                                return Workflow.Rule.from(conditionString,
-                                                                         workflowMap.computeIfAbsent(outcomeName, Workflow::new));
+                                                                         workflowMap.computeIfAbsent(outcomeName,
+                                                                                                     Workflow::new));
                                            })
                                            .collect(Collectors.toList()));
 
