@@ -54,18 +54,22 @@ public class Day21 {
 
         // PART 2
         log.info("Part 2:");
-        log.setLevel(Level.DEBUG);
+        //        log.setLevel(Level.DEBUG);
 
-        expectedTestResult = 1_234_567_890;
-        int part2TestResult = part2(testLines);
-        log.info("{} (should be {})", part2TestResult, expectedTestResult);
+        int[] steps2 = { 6, 10, 50, 100, 500, 1000, 5000 };
+        long[] expectedTestResults = { 16, 50, 1594, 6536, 167004, 668697, 16722044 };
+        for (int i = 0; i < steps2.length; i++) {
 
-        if (part2TestResult != expectedTestResult)
-            log.error("The test result doesn't match the expected value.");
+            int part2TestResult = part2(testLines, steps2[i]);
+            log.info("The Elf can reach {} garden plots in {} steps. (should be {})", part2TestResult, steps2[i], expectedTestResults[i]);
+
+            if (part2TestResult != expectedTestResults[i])
+                log.error("The test result doesn't match the expected value.");
+        }
 
         log.setLevel(Level.INFO);
 
-        log.info("{}", part2(lines));
+        log.info("The Elf can reach {} garden plots in 26501365 steps.", part2(lines, 26501365));
     }
 
     /**
@@ -95,7 +99,6 @@ public class Day21 {
                                                                .filter(gardenPlots::contains)
                                                                .collect(Collectors.toSet()));
         Queue<Coordinate> plotsToVisitNext = new ArrayDeque<>();
-        //        Set<Coordinate> visitedPlots = new HashSet<>();
 
         IntStream.range(1, steps).forEach(i -> {
             //            log.debug("Step {}:\n{}", i, plotsToVisit);
@@ -108,11 +111,9 @@ public class Day21 {
 
             while (!plotsToVisit.isEmpty()) {
                 Coordinate plot = plotsToVisit.poll();
-                //                visitedPlots.add(plot);
                 plotsToVisitNext.addAll(plot.findOrthogonalAdjacent()
                                             .stream()
                                             .filter(c -> gardenPlots.contains(c) &&
-                                                         //                                                         !visitedPlots.contains(c) &&
                                                          !plotsToVisitNext.contains(c))
                                             .collect(Collectors.toSet()));
             }
@@ -124,9 +125,58 @@ public class Day21 {
         return plotsToVisit.size();
     }
 
-    private static int part2(final List<String> lines) {
+    /**
+     * Starting from the garden plot marked S on your infinite map, how many
+     * garden plots could the Elf reach in exactly 26501365 steps?
+     * 
+     * @param lines
+     *            The lines describing the garden plots and rocks.
+     * @param steps
+     * @param steps
+     *            The number of steps the Elf will take.
+     * @return The number of garden plots that can be reached.
+     */
+    private static int part2(final List<String> lines, int steps) {
 
-        return -1;
+        int rows = lines.size();
+        int columns = lines.get(0).length();
+
+        // Parse the map
+        Set<Coordinate> rocks = Coordinate.findCoordinates(lines, '#');
+        Set<Coordinate> gardenPlots = Coordinate.findCoordinates(lines, '.');
+        Coordinate start = Coordinate.findCoordinates(lines, 'S').stream().findAny().get();
+        gardenPlots.add(start);
+
+        // Start at start's neighbours, and go n steps.
+        Queue<Coordinate> plotsToVisit = new ArrayDeque<>(start.findOrthogonalAdjacent()
+                                                               .stream()
+                                                               .filter(gardenPlots::contains)
+                                                               .collect(Collectors.toSet()));
+        Queue<Coordinate> plotsToVisitNext = new ArrayDeque<>();
+
+        IntStream.range(1, steps).forEach(i -> {
+            //            log.debug("Step {}:\n{}", i, plotsToVisit);
+            log.atDebug()
+               .setMessage("Step {}:\n{}\n{}")
+               .addArgument(i)
+               .addArgument(plotsToVisit)
+               .addArgument(() -> Coordinate.printMap(rows, columns, rocks, '#', Set.copyOf(plotsToVisit), 'O'))
+               .log();
+
+            while (!plotsToVisit.isEmpty()) {
+                Coordinate plot = plotsToVisit.poll();
+                plotsToVisitNext.addAll(plot.findOrthogonalAdjacent()
+                                            .stream()
+                                            .filter(c -> gardenPlots.contains(c) &&
+                                                         !plotsToVisitNext.contains(c))
+                                            .collect(Collectors.toSet()));
+            }
+            plotsToVisit.addAll(plotsToVisitNext);
+            plotsToVisitNext.clear();
+
+        });
+
+        return plotsToVisit.size();
     }
 
 }
