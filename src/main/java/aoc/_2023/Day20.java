@@ -43,15 +43,13 @@ public class Day20 {
         private final List<Module> destinationModules;
 
         public Module(String name) {
-            this.operation = (f, i) -> Optional.empty();
+            this.operation = new DefaultOperation();
             this.name = name;
             this.destinationModules = new ArrayList<>();
         }
 
         public void addDestination(Module destination) {
             this.destinationModules.add(destination);
-            // Signal it low to initialize
-            destination.handleInput(this, false);
         }
 
         public List<Pulse> handleInput(Module fromModule, boolean input) {
@@ -61,11 +59,16 @@ public class Day20 {
             return output.map(out -> this.destinationModules.stream()
                                                             .peek(m -> log.debug("{} -{}-> {}",
                                                                                  this.name,
-                                                                                 Boolean.TRUE.equals(out) ? "high" : "low",
+                                                                                 Boolean.TRUE.equals(out) ? "high"
+                                                                                                          : "low",
                                                                                  m.name))
                                                             .map(dest -> Pulse.of(this, dest, out))
                                                             .collect(Collectors.toList()))
                          .orElse(Collections.emptyList());
+        }
+
+        public void initConnections() {
+            this.destinationModules.forEach(d -> d.operation.init(this));
         }
 
         @Override
@@ -75,24 +78,68 @@ public class Day20 {
         }
     }
 
-    @FunctionalInterface
     private interface Operation {
         /**
          * Handle the processing of state and inputs
          * 
-         * @param state
-         * @param inputs
+         * @param fromModule
+         * @param input
          * @return
          */
         public Optional<Boolean> handleInput(Module fromModule, boolean input);
+
+        public void init(Module fromModule);
     }
 
-    private static class FlipFlop implements Operation {
+    private static class DefaultOperation implements Operation {
 
         @Override
         public Optional<Boolean> handleInput(Module fromModule, boolean input) {
-            // TODO Auto-generated method stub
+            return Optional.of(input);
+        }
+
+        @Override
+        public String toString() {
+            return "";
+        }
+
+        @Override
+        public void init(Module fromModule) {
+        }
+
+    }
+
+    private static class Button implements Operation {
+
+        @Override
+        public Optional<Boolean> handleInput(Module fromModule, boolean input) {
             return Optional.of(false);
+        }
+
+        @Override
+        public void init(Module fromModule) {
+        }
+    }
+
+    /**
+     * Flip-flop modules (prefix %) are either on or off; they are initially off. If
+     * a flip-flop module receives a high pulse, it is ignored and nothing happens.
+     * However, if a flip-flop module receives a low pulse, it flips between on and
+     * off. If it was off, it turns on and sends a high pulse. If it was on, it
+     * turns off and sends a low pulse.
+     */
+    private static class FlipFlop implements Operation {
+
+        private boolean state = false;
+
+        @Override
+        public Optional<Boolean> handleInput(Module fromModule, boolean input) {
+            if (input)
+                return Optional.empty();
+
+            state = !state;
+
+            return Optional.of(state);
         }
 
         @Override
@@ -100,14 +147,33 @@ public class Day20 {
             return "%";
         }
 
+        @Override
+        public void init(Module fromModule) {
+        }
+
     }
 
+    /**
+     * Conjunction modules (prefix &) remember the type of the most recent pulse
+     * received from each of their connected input modules; they initially default
+     * to remembering a low pulse for each input. When a pulse is received, the
+     * conjunction module first updates its memory for that input. Then, if it
+     * remembers high pulses for all inputs, it sends a low pulse; otherwise, it
+     * sends a high pulse.
+     */
     private static class Conjunction implements Operation {
+
+        private Map<Module, Boolean> state = new HashMap<>();
+
+        @Override
+        public void init(Module fromModule) {
+            state.put(fromModule, false);
+        }
 
         @Override
         public Optional<Boolean> handleInput(Module fromModule, boolean input) {
-            // TODO Auto-generated method stub
-            return Optional.of(false);
+            state.put(fromModule, input);
+            return Optional.of(!state.values().stream().allMatch(b -> b));
         }
 
         @Override
@@ -144,7 +210,8 @@ public class Day20 {
 
         int expectedTestResult = 32000000;
         long part1TestResult = part1(testLines1);
-        log.info("The product of the total high and low pulses is: {} (should be {})", part1TestResult, expectedTestResult);
+        log.info("The product of the total high and low pulses is: {} (should be {})", part1TestResult,
+                 expectedTestResult);
 
         if (part1TestResult != expectedTestResult)
             log.error("The test result doesn't match the expected value.");
@@ -153,7 +220,8 @@ public class Day20 {
 
         expectedTestResult = 11687500;
         part1TestResult = part1(testLines2);
-        log.info("The product of the total high and low pulses is: {} (should be {})", part1TestResult, expectedTestResult);
+        log.info("The product of the total high and low pulses is: {} (should be {})", part1TestResult,
+                 expectedTestResult);
 
         if (part1TestResult != expectedTestResult)
             log.error("The test result doesn't match the expected value.");
@@ -189,7 +257,7 @@ public class Day20 {
      * the total number of high pulses sent?
      * 
      * @param lines
-     *            The lines describing each module.
+     *     The lines describing each module.
      * @return The product of the total high and low pulses.
      */
     private static long part1(final List<String> lines) {
@@ -203,10 +271,28 @@ public class Day20 {
         Queue<Pulse> inputsToProcess = new ArrayDeque<>();
 
         Module button = new Module("button");
-        button.operation = (f, i) -> Optional.of(false);
+        button.operation = new Button();
         button.addDestination(moduleMap.get("broadcaster"));
 
-        IntStream.range(0, 1).forEach(i -> {
+        // Push the button once
+        inputsToProcess.addAll(button.handleInput(button, false));
+
+        // Process the queue
+        while (!inputsToProcess.isEmpty()) {
+            Pulse processing = inputsToProcess.poll();
+
+            // Count highs and lows
+            (processing.signal ? totalHighs : totalLows).getAndIncrement();
+
+            // Add any new pulses
+            inputsToProcess.addAll(processing.to.handleInput(processing.from, processing.signal));
+
+        }
+
+        log.setLevel(Level.INFO);
+
+        // Now push it 999 times more
+        IntStream.range(1, 1000).forEach(i -> {
             // Push the button
             inputsToProcess.addAll(button.handleInput(button, false));
 
@@ -235,16 +321,21 @@ public class Day20 {
         lines.forEach(line -> {
 
             // Get/create the source Module
-            Module sourceModule = moduleMap.computeIfAbsent(line.substring(0, line.indexOf(' ')).replaceAll("\\W", ""), Module::new);
+            Module sourceModule = moduleMap.computeIfAbsent(line.substring(0, line.indexOf(' ')).replaceAll("\\W", ""),
+                                                            Module::new);
             // Set its operation
             char operation = line.charAt(0);
             if (operationCreatorMap.containsKey(operation))
                 sourceModule.operation = operationCreatorMap.get(operation).get();
+
             // Add its destinations
             Stream.of(line.substring(line.indexOf('>') + 1).split(","))
                   .map(name -> moduleMap.computeIfAbsent(name.trim(), Module::new))
                   .forEach(sourceModule::addDestination);
+
         });
+
+        moduleMap.values().forEach(Module::initConnections);
 
         log.atDebug()
            .setMessage("Modules:\n{}")
