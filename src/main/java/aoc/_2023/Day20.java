@@ -231,7 +231,7 @@ public class Day20 {
         // Read the real file
         List<String> lines = FileUtils.readFile(INPUT_TXT);
 
-        log.info("The product of the total high and low pulses is: {}", part1(lines));
+        log.info("The product of the total high and low pulses is: {} (should be greater than 100,000,000)", part1(lines));
 
         // PART 2
         log.info("Part 2:");
