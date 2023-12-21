@@ -57,7 +57,7 @@ public class Day20 {
             Optional<Boolean> output = operation.handleInput(fromModule, input);
 
             return output.map(out -> this.destinationModules.stream()
-                                                            .peek(m -> log.debug("{} -{}-> {}",
+                                                            .peek(m -> log.trace("{} -{}-> {}",
                                                                                  this.name,
                                                                                  Boolean.TRUE.equals(out) ? "high"
                                                                                                           : "low",
@@ -203,7 +203,7 @@ public class Day20 {
     public static void main(String[] args) {
 
         log.info("Part 1:");
-        log.setLevel(Level.DEBUG);
+        log.setLevel(Level.TRACE);
 
         // Read the test files
         List<String> testLines1 = FileUtils.readFile(TEST_INPUT_TXT_1);
@@ -235,18 +235,11 @@ public class Day20 {
 
         // PART 2
         log.info("Part 2:");
+
         log.setLevel(Level.DEBUG);
 
-        expectedTestResult = 1_234_567_890;
-        long part2TestResult = part2(testLines1);
-        log.info("{} (should be {})", part2TestResult, expectedTestResult);
-
-        if (part2TestResult != expectedTestResult)
-            log.error("The test result doesn't match the expected value.");
-
-        log.setLevel(Level.INFO);
-
-        log.info("{}", part2(lines));
+        log.info("The fewest number of button pushes required to send a low pulse to module \"rx\" is: {}",
+                 part2(lines));
     }
 
     /**
@@ -315,6 +308,57 @@ public class Day20 {
         return totalLows.get() * totalHighs.get();
     }
 
+    /**
+     * Reset all modules to their default states. Waiting for all pulses to be fully
+     * handled after each button press, what is the fewest number of button presses
+     * required to deliver a single low pulse to the module named rx?
+     * 
+     * @param lines
+     *     The lines describing each module.
+     * @return The fewest number of button pushes required to send a low pulse to
+     *     module "rx".
+     */
+    private static int part2(final List<String> lines) {
+
+        // Parse the modules
+        Map<String, Module> moduleMap = parseModules(lines);
+
+        Queue<Pulse> inputsToProcess = new ArrayDeque<>();
+
+        Module rx = moduleMap.get("rx");
+
+        Module button = new Module("button");
+        button.operation = new Button();
+        button.addDestination(moduleMap.get("broadcaster"));
+
+        // Now push it 999 times more
+        int buttonPushes = 0;
+        while (buttonPushes++ >= 0) {
+            // Push the button
+            inputsToProcess.addAll(button.handleInput(button, false));
+
+            // Process the queue
+            while (!inputsToProcess.isEmpty()) {
+                Pulse processing = inputsToProcess.poll();
+
+                // Watch for a low pulse going to "rx"
+                if (processing.to == rx && !processing.signal)
+                    break;
+
+                // Add any new pulses
+                inputsToProcess.addAll(processing.to.handleInput(processing.from, processing.signal));
+
+            }
+
+            // Periodically log the progress...
+            if (Math.log10(buttonPushes) % 1 == 0)
+                log.debug("{} button pushes.", buttonPushes);
+
+        }
+
+        return buttonPushes;
+    }
+
     private static Map<String, Module> parseModules(final List<String> lines) {
         Map<String, Module> moduleMap = new HashMap<>();
         Map<Character, Supplier<Operation>> operationCreatorMap = Map.of('%', FlipFlop::new, '&', Conjunction::new);
@@ -342,11 +386,6 @@ public class Day20 {
            .addArgument(moduleMap.values().stream().map(Module::toString).collect(Collectors.joining("\n")))
            .log();
         return moduleMap;
-    }
-
-    private static int part2(final List<String> lines) {
-
-        return -1;
     }
 
 }
