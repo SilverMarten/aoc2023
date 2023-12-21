@@ -53,6 +53,18 @@ public final class Coordinate implements Comparable<Coordinate> {
     }
 
     /**
+     * @return The set of orthogonally adjacent coordinates to this coordinate.
+     */
+    public Set<Coordinate> findOrthogonalAdjacent() {
+        return IntStream.rangeClosed(-1, 1)
+                        .mapToObj(x -> IntStream.rangeClosed(-1, 1)
+                                                .filter(y -> x == 0 ^ y == 0)
+                                                .mapToObj(y -> Coordinate.of(this.row + y, this.column + x)))
+                        .flatMap(Function.identity())
+                        .collect(Collectors.toSet());
+    }
+
+    /**
      * Return the pre-generated hashCode for this Coordinate.
      */
     @Override
