@@ -1,10 +1,12 @@
 package aoc._2023;
 
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -34,15 +36,17 @@ public class Day22 {
     private static final String TEST_INPUT_TXT = "testInput/Day22.txt";
 
     private static final class Brick {
+        String name;
         Set<Coordinate3D> blocks = new TreeSet<>();
 
-        Set<Brick> onTop = new HashSet<>();
-        Set<Brick> underneath = new HashSet<>();
+        Set<Brick> supports = new HashSet<>();
+        Set<Brick> supportedBy = new HashSet<>();
 
-        Coordinate3D orientation = Coordinate3D.of(0, 0, 0);
-        int length = 0;
-
-        int bottomLevel = 0;
+        public void moveDown() {
+            this.blocks = this.blocks.stream()
+                                     .map(b -> Coordinate3D.of(b.getRow(), b.getColumn(), b.getHeight() - 1))
+                                     .collect(Collectors.toSet());
+        }
 
         static Brick from(String brickString) {
             Brick newBrick = new Brick();
@@ -62,7 +66,6 @@ public class Day22 {
 
             // Determine orientation and length
             int length = end.getRow() - start.getRow() + end.getColumn() - start.getColumn() + end.getHeight() - start.getHeight();
-            newBrick.length = length + 1;
             if (length > 1) {
                 Coordinate3D orientation = Coordinate3D.of((end.getRow() - start.getRow()) / length,
                                                            (end.getColumn() - start.getColumn()) / length,
@@ -73,17 +76,14 @@ public class Day22 {
                                                                                start.getColumn() + orientation.getColumn() * i,
                                                                                start.getHeight() + orientation.getHeight() * i))
                                                 .collect(Collectors.toSet()));
-                newBrick.orientation = orientation;
             }
-
-            newBrick.bottomLevel = newBrick.blocks.stream().mapToInt(Coordinate3D::getHeight).min().getAsInt();
 
             return newBrick;
         }
 
         @Override
         public String toString() {
-            return blocks.toString();
+            return String.format("%s %s", name, blocks);
         }
     }
 
@@ -139,7 +139,14 @@ public class Day22 {
     private static int part1(final List<String> lines) {
 
         // Parse the bricks
-        Set<Brick> bricks = lines.stream().map(Brick::from).collect(Collectors.toSet());
+        Iterator<String> nameQueue = IterableUtils.loopingIterable(IntStream.range(0, 26)
+                                                                            .mapToObj(i -> Character.toString('A' + i))
+                                                                            .collect(Collectors.toList()))
+                                                  .iterator();
+        Set<Brick> bricks = lines.stream()
+                                 .map(Brick::from)
+                                 .peek(b -> b.name = nameQueue.next())
+                                 .collect(Collectors.toSet());
 
         log.debug("Bricks:\n{}", bricks);
 
@@ -159,8 +166,6 @@ public class Day22 {
                                      .collect(Collectors.toSet()));
         log.debug("Floor: {} ", floor);
 
-        //        bricks.add(floor);
-
         Function<? super Coordinate3D, ? extends Long> //
         countMatches = c -> IterableUtils.countMatches(bricks,
                                                        brick -> brick.blocks.stream()
@@ -175,36 +180,53 @@ public class Day22 {
                                                   l -> l < 16 ? Character.forDigit(l.intValue(), 16) : 'X'))
            .log();
 
-        // Start from 1, lower any brick that can be lowered?
+        AtomicBoolean bricksMoved = new AtomicBoolean();
+        do {
+            bricksMoved.set(false);
+            // Start from 2, lower any brick that can be lowered?
+            IntStream.rangeClosed(2, height).forEach(level -> {
+                IterableUtils.filteredIterable(bricks, brick -> brick.blocks.stream().anyMatch(b -> b.getHeight() == level))
+                             .forEach(brick -> {
+                                 // Can it be lowered?
+                                 int bottomLevel = brick.blocks.stream().mapToInt(Coordinate3D::getHeight).min().getAsInt();
+                                 if (bottomLevel > 1) {
+                                     // Is every bottom level block free to move down?
+                                     Set<Brick> beneath = brick.blocks.stream()
+                                                                      .filter(b -> b.getHeight() == bottomLevel)
+                                                                      .flatMap(b -> bricks.stream()
+                                                                                          .filter(otherBrick//
+                                     -> otherBrick.blocks.contains(Coordinate3D.of(b.getRow(),
+                                                                                   b.getColumn(),
+                                                                                   bottomLevel - 1))))
+                                                                      .collect(Collectors.toSet());
+                                     if (beneath.isEmpty()) {
+                                         bricksMoved.set(true);
+                                         brick.moveDown();
+                                     } else {
+                                         // If not, add it the the brick it's resting on
+                                         beneath.forEach(b -> {
+                                             b.supports.add(brick);
+                                             brick.supportedBy.add(b);
+                                         });
+                                     }
+                                 }
 
-        // Find out which bricks are resting on which other bricks.
-        bricks.stream()
-              .forEach(brick -> {
-                  brick.blocks.stream().forEach(block -> {
-                      IntStream.range(1, block.getHeight())
-                               .mapToObj(d -> IterableUtils.find(bricks, otherBrick -> brick != otherBrick &&
-                                                                                       otherBrick.blocks.stream()
-                                                                                                        .anyMatch(b -> b.getRow() == block.getRow() &&
-                                                                                                                       b.getColumn() == block.getColumn() &&
-                                                                                                                       b.getHeight() == block.getHeight() -
-                                                                                                                                        d)))
-                               .filter(Objects::nonNull)
-                               .findFirst()
-                               .ifPresent(otherBrick -> {
-                                   otherBrick.onTop.add(brick);
-                                   brick.underneath.add(otherBrick);
-                               });
-                  });
-              });
+                             });
+            });
 
-        // Count how many bricks are resting on more than one
-        return (int) bricks.stream().filter(b -> b.onTop.stream().allMatch(ob -> ob.underneath.size() > 1)).count();
+        } while (bricksMoved.get());
 
-    }
+        log.atDebug()
+           .setMessage("{}")
+           .addArgument(() -> bricks.stream().sorted(Comparator.comparing(b -> b.name))
+                                    .map(b -> String.format("Brick %s is supporting: %s", b.name,
+                                                            b.supports.stream().map(s -> s.name).collect(Collectors.joining(", "))))
+                                    .collect(Collectors.joining("\n")))
+           .log();
 
-    private static int countRestingPoints(Brick brick, Set<Brick> allBricks) {
+        // Count how many bricks are underneath bricks which are resting on more than one brick
+        return (int) bricks.stream().filter(b -> b.supports.stream().allMatch(ob -> ob.supportedBy.size() > 1)).count();
 
-        return 1;
     }
 
     private static int part2(final List<String> lines) {
