@@ -40,7 +40,8 @@ public class Day21 {
         int expectedTestResult = 16;
         int steps = 6;
         int part1TestResult = part1(testLines, steps);
-        log.info("The Elf can reach {} garden plots in {} steps. (should be {})", part1TestResult, steps, expectedTestResult);
+        log.info("The Elf can reach {} garden plots in {} steps. (should be {})", part1TestResult, steps,
+                 expectedTestResult);
 
         if (part1TestResult != expectedTestResult)
             log.error("The test result doesn't match the expected value.");
@@ -54,14 +55,15 @@ public class Day21 {
 
         // PART 2
         log.info("Part 2:");
-        //        log.setLevel(Level.DEBUG);
+        // log.setLevel(Level.DEBUG);
 
         int[] steps2 = { 6, 10, 50, 100, 500, 1000, 5000 };
         long[] expectedTestResults = { 16, 50, 1594, 6536, 167004, 668697, 16722044 };
         for (int i = 0; i < steps2.length; i++) {
 
             int part2TestResult = part2(testLines, steps2[i]);
-            log.info("The Elf can reach {} garden plots in {} steps. (should be {})", part2TestResult, steps2[i], expectedTestResults[i]);
+            log.info("The Elf can reach {} garden plots in {} steps. (should be {})", part2TestResult, steps2[i],
+                     expectedTestResults[i]);
 
             if (part2TestResult != expectedTestResults[i])
                 log.error("The test result doesn't match the expected value.");
@@ -77,9 +79,9 @@ public class Day21 {
      * could the Elf reach in exactly n steps?
      * 
      * @param lines
-     *            The lines describing the garden plots and rocks.
+     *     The lines describing the garden plots and rocks.
      * @param steps
-     *            The number of steps the Elf will take.
+     *     The number of steps the Elf will take.
      * @return The number of garden plots that can be reached.
      */
     private static int part1(final List<String> lines, int steps) {
@@ -101,7 +103,7 @@ public class Day21 {
         Queue<Coordinate> plotsToVisitNext = new ArrayDeque<>();
 
         IntStream.range(1, steps).forEach(i -> {
-            //            log.debug("Step {}:\n{}", i, plotsToVisit);
+            // log.debug("Step {}:\n{}", i, plotsToVisit);
             log.atDebug()
                .setMessage("Step {}:\n{}\n{}")
                .addArgument(i)
@@ -130,10 +132,10 @@ public class Day21 {
      * garden plots could the Elf reach in exactly 26501365 steps?
      * 
      * @param lines
-     *            The lines describing the garden plots and rocks.
+     *     The lines describing the garden plots and rocks.
      * @param steps
      * @param steps
-     *            The number of steps the Elf will take.
+     *     The number of steps the Elf will take.
      * @return The number of garden plots that can be reached.
      */
     private static int part2(final List<String> lines, int steps) {
@@ -155,7 +157,7 @@ public class Day21 {
         Queue<Coordinate> plotsToVisitNext = new ArrayDeque<>();
 
         IntStream.range(1, steps).forEach(i -> {
-            //            log.debug("Step {}:\n{}", i, plotsToVisit);
+            // log.debug("Step {}:\n{}", i, plotsToVisit);
             log.atDebug()
                .setMessage("Step {}:\n{}\n{}")
                .addArgument(i)
@@ -167,7 +169,10 @@ public class Day21 {
                 Coordinate plot = plotsToVisit.poll();
                 plotsToVisitNext.addAll(plot.findOrthogonalAdjacent()
                                             .stream()
-                                            .filter(c -> gardenPlots.contains(c) &&
+                                            .filter(c -> gardenPlots.contains(Coordinate.of((c.getRow() - 1) % rows + 1,
+                                                                                            (c.getColumn()
+                                                                                             - 1) % columns + 1))
+                                                         &&
                                                          !plotsToVisitNext.contains(c))
                                             .collect(Collectors.toSet()));
             }
