@@ -273,21 +273,41 @@ public final class Coordinate implements Comparable<Coordinate> {
      */
     public static <V> String printMap(int rows, int columns, Map<Coordinate, V> coordinates,
                                       Function<V, Character> characterMapper) {
+        return printMap(1, 1, rows, columns, coordinates, characterMapper);
+    }
 
-        int location = columns;
+    /**
+     * Create a printout of the map, translating the value to a character with
+     * the given function, using '.' for empty spaces.
+     * 
+     * @param <V>
+     *            The type of the value in the given map.
+     * 
+     * @param rows
+     *            The number of rows in the map.
+     * @param columns
+     *            The number of columns in the map.
+     * @param coordinates
+     *            The map of coordinates to display the corresponding character.
+     * @param The
+     *            function to map the given value type to a character.
+     * 
+     * @return A string representation of the map.
+     */
+    public static <V> String printMap(int minRow, int minColumn, int maxRow, int maxColumn,
+                                      Map<Coordinate, V> coordinates,
+                                      Function<V, Character> characterMapper) {
 
-        StringBuilder printout = new StringBuilder(rows * columns + rows);
+        StringBuilder printout = new StringBuilder();
 
-        while (location < (rows + 1) * columns) {
-            Optional<V> charToPrint = Optional.ofNullable(coordinates.get(new Coordinate(location / columns,
-                                                                                         location % columns + 1)));
-            printout.append(charToPrint.map(characterMapper).orElse('.'));
-
-            if (location % columns == columns - 1)
-                printout.append('\n');
-
-            location++;
-        }
+        IntStream.rangeClosed(minRow, maxRow).forEach(r -> {
+            IntStream.rangeClosed(minColumn, maxColumn).forEach(c -> {
+                Coordinate location = Coordinate.of(r, c);
+                Optional<V> charToPrint = Optional.ofNullable(coordinates.get(location));
+                printout.append(charToPrint.map(characterMapper).orElse('.'));
+            });
+            printout.append('\n');
+        });
 
         return printout.toString();
     }
