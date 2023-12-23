@@ -69,16 +69,20 @@ public class Day22 {
             newBrick.blocks.add(end);
 
             // Determine orientation and length
-            int length = end.getRow() - start.getRow() + end.getColumn() - start.getColumn() + end.getHeight() - start.getHeight();
+            int length = end.getRow() - start.getRow() + end.getColumn() - start.getColumn() + end.getHeight()
+                         - start.getHeight();
             if (length > 1) {
                 Coordinate3D orientation = Coordinate3D.of((end.getRow() - start.getRow()) / length,
                                                            (end.getColumn() - start.getColumn()) / length,
                                                            (end.getHeight() - start.getHeight()) / length);
 
                 newBrick.blocks.addAll(IntStream.range(1, length)
-                                                .mapToObj(i -> Coordinate3D.of(start.getRow() + orientation.getRow() * i,
-                                                                               start.getColumn() + orientation.getColumn() * i,
-                                                                               start.getHeight() + orientation.getHeight() * i))
+                                                .mapToObj(i -> Coordinate3D.of(start.getRow()
+                                                                               + orientation.getRow() * i,
+                                                                               start.getColumn() + orientation.getColumn()
+                                                                                                   * i,
+                                                                               start.getHeight() + orientation.getHeight()
+                                                                                                   * i))
                                                 .collect(Collectors.toSet()));
             }
 
@@ -101,7 +105,8 @@ public class Day22 {
 
         int expectedTestResult = 5;
         int part1TestResult = part1(testLines);
-        log.info("The number of bricks that can be safely, individually, disintegrated is: {} (should be {})", part1TestResult,
+        log.info("The number of bricks that can be safely, individually, disintegrated is: {} (should be {})",
+                 part1TestResult,
                  expectedTestResult);
 
         if (part1TestResult != expectedTestResult)
@@ -112,7 +117,9 @@ public class Day22 {
         // Read the real file
         List<String> lines = FileUtils.readFile(INPUT_TXT);
 
-        log.info("The number of bricks that can be safely, individually, disintegrated is: {} (should be lower than 1003)", part1(lines));
+        // log.info("The number of bricks that can be safely, individually,
+        // disintegrated is: {} (should be lower than 1003)",
+        // part1(lines));
 
         // PART 2
         log.info("Part 2:");
@@ -128,7 +135,8 @@ public class Day22 {
 
         log.setLevel(Level.INFO);
 
-        log.info("The sum of the other bricks that would fall if each were individually disintegrated is: {}", part2(lines));
+        log.info("The sum of the other bricks that would fall if each were individually disintegrated is: {}",
+                 part2(lines));
     }
 
     /**
@@ -137,9 +145,9 @@ public class Day22 {
      * safely chosen as the one to get disintegrated?
      * 
      * @param lines
-     *            The lines giving the 3d coordinates of the ends of the bricks
+     *     The lines giving the 3d coordinates of the ends of the bricks
      * @return The number of bricks that can be safely, individually,
-     *         disintegrated.
+     *     disintegrated.
      */
     private static int part1(final List<String> lines) {
 
@@ -149,7 +157,8 @@ public class Day22 {
         log.debug("Bricks:\n{}", bricks);
 
         int rows = bricks.stream().flatMap(b -> b.blocks.stream()).mapToInt(Coordinate3D::getRow).max().getAsInt() + 1;
-        int columns = bricks.stream().flatMap(b -> b.blocks.stream()).mapToInt(Coordinate3D::getColumn).max().getAsInt() + 1;
+        int columns = bricks.stream().flatMap(b -> b.blocks.stream()).mapToInt(Coordinate3D::getColumn).max().getAsInt()
+                      + 1;
         int height = bricks.stream().flatMap(b -> b.blocks.stream()).mapToInt(Coordinate3D::getHeight).max().getAsInt();
 
         log.debug("Rows: {}  Columns: {}  Height: {}", rows, columns, height);
@@ -173,7 +182,8 @@ public class Day22 {
            .setMessage("Top view:\n{}")
            .addArgument(() -> Coordinate.printMap(0, 0, rows - 1, columns - 1,
                                                   floor.blocks.stream()
-                                                              .collect(Collectors.toMap(c -> Coordinate.of(c.getRow(), c.getColumn()),
+                                                              .collect(Collectors.toMap(c -> Coordinate.of(c.getRow(),
+                                                                                                           c.getColumn()),
                                                                                         countMatches)),
                                                   l -> l < 16 ? Character.forDigit(l.intValue(), 16) : 'X'))
            .log();
@@ -185,11 +195,13 @@ public class Day22 {
            .setMessage("{}")
            .addArgument(() -> bricks.stream().sorted(Comparator.comparing(b -> b.name))
                                     .map(b -> String.format("Brick %s is supporting: %s", b.name,
-                                                            b.supports.stream().map(s -> s.name).collect(Collectors.joining(", "))))
+                                                            b.supports.stream().map(s -> s.name)
+                                                                      .collect(Collectors.joining(", "))))
                                     .collect(Collectors.joining("\n")))
            .log();
 
-        // Count how many bricks are underneath bricks which are resting on more than one brick
+        // Count how many bricks are underneath bricks which are resting on more than
+        // one brick
         return (int) bricks.stream().filter(b -> b.supports.stream().allMatch(ob -> ob.supportedBy.size() > 1)).count();
 
     }
@@ -211,10 +223,12 @@ public class Day22 {
             bricksMoved.set(false);
             // Start from 2, lower any brick that can be lowered?
             IntStream.rangeClosed(2, height).forEach(level -> {
-                IterableUtils.filteredIterable(bricks, brick -> brick.blocks.stream().anyMatch(b -> b.getHeight() == level))
+                IterableUtils.filteredIterable(bricks,
+                                               brick -> brick.blocks.stream().anyMatch(b -> b.getHeight() == level))
                              .forEach(brick -> {
                                  // Can it be lowered?
-                                 int bottomLevel = brick.blocks.stream().mapToInt(Coordinate3D::getHeight).min().getAsInt();
+                                 int bottomLevel = brick.blocks.stream().mapToInt(Coordinate3D::getHeight).min()
+                                                               .getAsInt();
                                  if (bottomLevel > 1) {
                                      // Is every bottom level block free to move down?
                                      Set<Brick> beneath = brick.blocks.stream()
@@ -249,9 +263,9 @@ public class Day22 {
      * would fall?
      * 
      * @param lines
-     *            The lines giving the 3d coordinates of the ends of the bricks
+     *     The lines giving the 3d coordinates of the ends of the bricks
      * @return The sum of the other bricks that would fall if each were
-     *         individually disintegrated.
+     *     individually disintegrated.
      */
     private static int part2(final List<String> lines) {
 
@@ -263,42 +277,63 @@ public class Day22 {
         // Lower all bricks
         lowerBricks(bricks, height);
 
-        // For each brick, the number that would fall is the sum of the number that would fall for each brick it is the only support for.
-        Map<Brick, Integer> supportedBricks = new HashMap<>();
+        // How many bricks fell when a particular brick was removed
+        Map<Brick, Long> totalFallenBricks = new HashMap<>();
 
         Queue<Brick> bricksToProcess = new ArrayDeque<>(bricks);
 
+        // For each brick, there is a number of bricks below it that have to fall for it
+        // to fall
+        Map<Brick, Set<Brick>> removedSupports = new HashMap<>();
         while (!bricksToProcess.isEmpty()) {
+            removedSupports.clear();
             Brick brickToProcess = bricksToProcess.poll();
-            if (!supportedBricks.containsKey(brickToProcess)) {
-                // Can it be individually disintegrated?
-                if (brickToProcess.supports.isEmpty() ||
-                    brickToProcess.supports.stream().allMatch(ob -> ob.supportedBy.size() > 1)) {
-                    supportedBricks.put(brickToProcess, 0);
-                } else if (brickToProcess.supports.stream().allMatch(supportedBricks::containsKey)) {
-                    // Have all the bricks its supporting been calculated?
-                    supportedBricks.put(brickToProcess, brickToProcess.supports.stream()
-                                                                               .filter(ob -> ob.supportedBy.size() == 1)
-                                                                               .mapToInt(ob -> supportedBricks.get(ob) + 1)
-                                                                               .sum());
-                } else {
-                    // Put it back for now
-                    bricksToProcess.add(brickToProcess);
+            brickToProcess.supports.forEach(b -> removedSupports.computeIfAbsent(b, k -> new HashSet<>())
+                                                                .add(brickToProcess));
+
+            // Follow up the stack and mark a support as having fallen
+            Queue<Brick> bricksOnTop = new ArrayDeque<>();
+            bricksOnTop.addAll(brickToProcess.supports);
+            while (!bricksOnTop.isEmpty()) {
+                Brick brickOnTop = bricksOnTop.poll();
+                // If all of its supported bricks have been removed, it falls
+                if (brickOnTop.supportedBy.equals(removedSupports.get(brickOnTop))) {
+                    brickOnTop.supports.forEach(b -> removedSupports.computeIfAbsent(b, k -> new HashSet<>())
+                                                                    .add(brickOnTop));
+                    bricksOnTop.addAll(brickOnTop.supports);
                 }
             }
+
+            // Check how many bricks have lost all their supports
+            log.atDebug()
+               .setMessage("Removed supports for {}:\n{}")
+               .addArgument(brickToProcess.name)
+               .addArgument(() -> removedSupports.entrySet().stream()
+                                                 .map(e -> String.format("%s: %d/%d", e.getKey().name,
+                                                                         e.getValue().size(),
+                                                                         e.getKey().supportedBy.size()))
+                                                 .collect(Collectors.joining("\n")))
+               .log();
+
+            long total = removedSupports.entrySet()
+                                        .stream()
+                                        .filter(e -> e.getKey().supportedBy.equals(e.getValue())).count();
+            if (total > 0)
+                totalFallenBricks.put(brickToProcess, total);
+
         }
 
         log.atDebug()
            .setMessage("{}")
-           .addArgument(() -> supportedBricks.entrySet()
-                                             .stream()
-                                             .sorted(Comparator.comparing(e -> e.getKey().name))
-                                             .map(e -> String.format("Disintegrating brick %s would cause %s other bricks to fall.",
-                                                                     e.getKey().name,
-                                                                     e.getValue()))
-                                             .collect(Collectors.joining("\n")))
+           .addArgument(() -> totalFallenBricks.entrySet()
+                                               .stream()
+                                               .sorted(Comparator.comparing(e -> e.getKey().name))
+                                               .map(e -> String.format("Disintegrating brick %s would cause %s other bricks to fall.",
+                                                                       e.getKey().name,
+                                                                       e.getValue()))
+                                               .collect(Collectors.joining("\n")))
            .log();
-        return supportedBricks.values().stream().mapToInt(Integer::intValue).sum();
+        return totalFallenBricks.values().stream().mapToInt(Number::intValue).sum();
     }
 
 }
