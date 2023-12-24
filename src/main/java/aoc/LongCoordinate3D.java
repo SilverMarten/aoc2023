@@ -9,47 +9,47 @@ import java.util.stream.IntStream;
 /**
  * A coordinate of row, column, and height.
  */
-public final class Coordinate3D implements Comparable<Coordinate3D> {
-    private final int row;
-    private final int column;
-    private final int height;
+public final class LongCoordinate3D implements Comparable<LongCoordinate3D> {
+    private final long row;
+    private final long column;
+    private final long height;
     private final int hashCode;
 
-    public Coordinate3D(int row, int column, int height) {
+    public LongCoordinate3D(long row, long column, long height) {
         this.row = row;
         this.column = column;
         this.height = height;
         this.hashCode = computeHashCode();
     }
 
-    public int getRow() {
+    public long getRow() {
         return row;
     }
 
-    public int getColumn() {
+    public long getColumn() {
         return column;
     }
 
-    public int getHeight() {
+    public long getHeight() {
         return height;
     }
 
-    public static Coordinate3D of(int row, int column, int height) {
-        return new Coordinate3D(row, column, height);
+    public static LongCoordinate3D of(long row, long column, long height) {
+        return new LongCoordinate3D(row, column, height);
     }
 
     /**
      * @return The set of adjacent coordinates to this coordinate.
      */
-    public Set<Coordinate3D> findAdjacent() {
+    public Set<LongCoordinate3D> findAdjacent() {
         return IntStream.rangeClosed(-1, 1)
                         .mapToObj(x -> IntStream.rangeClosed(-1, 1)
                                                 .filter(y -> !(x == 0 && y == 0))
                                                 .mapToObj(y -> IntStream.rangeClosed(-1, 1)
                                                                         .filter(z -> !(x == 0 && y == 0 && z == 0))
-                                                                        .mapToObj(z -> Coordinate3D.of(this.row + y,
-                                                                                                       this.column + x,
-                                                                                                       this.height + z))))
+                                                                        .mapToObj(z -> LongCoordinate3D.of(this.row + y,
+                                                                                                           this.column + x,
+                                                                                                           this.height + z))))
                         .flatMap(s -> s)
                         .flatMap(Function.identity())
                         .collect(Collectors.toSet());
@@ -58,15 +58,16 @@ public final class Coordinate3D implements Comparable<Coordinate3D> {
     /**
      * @return The set of orthogonally adjacent coordinates to this coordinate.
      */
-    public Set<Coordinate3D> findOrthogonalAdjacent() {
+    public Set<LongCoordinate3D> findOrthogonalAdjacent() {
         return IntStream.rangeClosed(-1, 1)
                         .mapToObj(x -> IntStream.rangeClosed(-1, 1)
                                                 .filter(y -> x == 0 ^ y == 0)
                                                 .mapToObj(y -> IntStream.rangeClosed(-1, 1)
-                                                                        .filter(z -> (x == 0 ^ z == 0) ^ (y == 0 ^ z == 0))
-                                                                        .mapToObj(z -> Coordinate3D.of(this.row + y,
-                                                                                                       this.column + x,
-                                                                                                       this.height + z))))
+                                                                        .filter(z -> (x == 0 ^ z == 0)
+                                                                                     ^ (y == 0 ^ z == 0))
+                                                                        .mapToObj(z -> LongCoordinate3D.of(this.row + y,
+                                                                                                           this.column + x,
+                                                                                                           this.height + z))))
                         .flatMap(s -> s)
                         .flatMap(Function.identity())
                         .collect(Collectors.toSet());
@@ -95,7 +96,7 @@ public final class Coordinate3D implements Comparable<Coordinate3D> {
             return false;
         if (getClass() != obj.getClass())
             return false;
-        Coordinate3D other = (Coordinate3D) obj;
+        LongCoordinate3D other = (LongCoordinate3D) obj;
         return column == other.column && height == other.height && row == other.row;
     }
 
@@ -105,10 +106,10 @@ public final class Coordinate3D implements Comparable<Coordinate3D> {
     }
 
     @Override
-    public int compareTo(Coordinate3D o) {
-        int result = Integer.compare(this.row, o.row);
-        result = result == 0 ? Integer.compare(this.column, o.column) : result;
-        return result == 0 ? Integer.compare(this.height, o.height) : result;
+    public int compareTo(LongCoordinate3D o) {
+        int result = Long.compare(this.row, o.row);
+        result = result == 0 ? Long.compare(this.column, o.column) : result;
+        return result == 0 ? Long.compare(this.height, o.height) : result;
     }
 
 }
