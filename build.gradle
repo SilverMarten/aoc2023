@@ -10,10 +10,13 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.apache.commons:commons-lang3:latest.release'
-    implementation 'org.apache.commons:commons-collections4:latest.release'
-    implementation 'org.slf4j:slf4j-api:latest.release'
-    runtimeOnly 'ch.qos.logback:logback-classic:latest.release'
+    implementation 'org.jgrapht:jgrapht-core:1.5.2',
+                   'org.jgrapht:jgrapht-ext:1.5.2'
+    implementation 'org.apache.commons:commons-lang3:latest.release',
+                   'org.apache.commons:commons-collections4:latest.release'
+                   
+    implementation 'org.slf4j:slf4j-api:latest.release',
+                   'ch.qos.logback:logback-classic:latest.release'
 }
 
 // Create a new DayN.java file from the template.
