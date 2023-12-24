@@ -75,16 +75,17 @@ public class Day24 {
         log.info("Part 2:");
         log.setLevel(Level.DEBUG);
 
-        expectedTestResult = 1_234_567_890;
-        int part2TestResult = part2(testLines);
-        log.info("{} (should be {})", part2TestResult, expectedTestResult);
+        expectedTestResult = 47;
+        long part2TestResult = part2(testLines);
+        log.info("The sum of the coordinates of the starting point of the rock is: {} (should be {})", part2TestResult,
+                 expectedTestResult);
 
         if (part2TestResult != expectedTestResult)
             log.error("The test result doesn't match the expected value.");
 
         log.setLevel(Level.INFO);
 
-        log.info("{}", part2(lines));
+        log.info("The sum of the coordinates of the starting point of the rock is: {}", part2(lines));
     }
 
     /**
@@ -184,7 +185,28 @@ public class Day24 {
 
     }
 
-    private static int part2(final List<String> lines) {
+    /**
+     * Determine the exact position and velocity the rock needs to have at time 0 so that it perfectly collides with
+     * every hailstone. What do you get if you add up the X, Y, and Z coordinates of that initial position?
+     * 
+     * @param lines The lines describing each hail stone's position and velocity.
+     * @return The sum of the coordinates of the starting point of the rock.
+     */
+    private static long part2(final List<String> lines) {
+        // Parse the positions and velocities
+        List<Hailstone> hailstones = lines.stream().map(l -> {
+            String[] position = l.split(" @ *")[0].split(", *");
+            String[] velocity = l.split(" @ *")[1].split(", *");
+            return new Hailstone(LongCoordinate3D.of(Long.parseLong(position[0]),
+                                                     Long.parseLong(position[1]),
+                                                     Long.parseLong(position[2])),
+                                 Coordinate3D.of(Integer.parseInt(velocity[0]),
+                                                 Integer.parseInt(velocity[1]),
+                                                 Integer.parseInt(velocity[2])));
+        })
+                                          .collect(Collectors.toList());
+
+        log.debug("Hailstones:\n{}", hailstones.stream().map(Hailstone::toString).collect(Collectors.joining("\n")));
 
         return -1;
     }
